@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "526331216604",
+    "project_id": "diuclubs",
+    "storage_bucket": "diuclubs.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:526331216604:android:4de6354db30636f2442a19",
+        "android_client_info": {
+          "package_name": "com.example.diu"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB4AKd9PdYQmIyh5BkAevaZ_bx9ggsxWAQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

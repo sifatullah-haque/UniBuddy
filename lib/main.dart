@@ -1,22 +1,18 @@
 import 'package:diu/Constant/firebase_options.dart';
-
 import 'package:diu/auth/login/isLogin.dart';
-import 'package:diu/pages/home_page/Idea/Idea.dart';
-import 'package:diu/pages/home_page/Support/Support.dart';
-import 'package:diu/pages/home_page/Volunteer/volunteer.dart';
-import 'package:diu/pages/home_page/pure_home_page/buttonNavigator.dart';
+import 'package:diu/pages/home_page/Bus_Schedule/busSchedule.dart';
+import 'package:diu/pages/home_page/Cafeteria/cafeteria.dart';
 import 'package:diu/pages/home_page/pure_home_page/home_page.dart';
 import 'package:diu/pages/main_navigation.dart';
-import 'package:diu/willDeleteLater/test.dart';
-
+import 'package:diu/utils/firebase_project_config.dart';
 import 'package:firebase_core/firebase_core.dart';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  checkFirebaseConfig(); // Add this line to check Firebase config
   runApp(const MyApp());
 }
 
@@ -34,7 +30,7 @@ class MyApp extends StatelessWidget {
             fontFamily: "Poppins",
           ),
           debugShowCheckedModeBanner: false,
-          home: MainNavigation()),
+          home: BusSchedule()),
     );
   }
 }

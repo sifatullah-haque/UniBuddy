@@ -1,5 +1,7 @@
 import 'dart:ui';
+import 'package:diu/pages/home_page/chat/chat.dart';
 import 'package:diu/pages/notifications/notifications.dart';
+import 'package:diu/pages/profile/profile.dart';
 import 'package:flutter/material.dart';
 import 'package:diu/Constant/color_is.dart';
 import 'package:diu/pages/home_page/pure_home_page/home_page.dart';
@@ -18,9 +20,8 @@ class _MainNavigationState extends State<MainNavigation> {
   final List<Widget> _pages = [
     HomePage(),
     Notifications(),
-    Center(child: Text('Bus')),
-    Center(child: Text('Class')),
-    Center(child: Text('Profile')),
+    Chat(),
+    Profile(),
   ];
 
   void _onItemTapped(int index) {
@@ -92,7 +93,8 @@ class _MainNavigationState extends State<MainNavigation> {
                             // _buildNavItem(1, Icons.directions_bus, 'Bus'),
                             _buildNavItem(
                                 1, Icons.notifications, 'Notification'),
-                            _buildNavItem(2, Icons.class_, 'Class'),
+                            _buildNavItem(
+                                2, Icons.chat_bubble_outline_rounded, 'Chat'),
                             _buildNavItem(3, Icons.person, 'Profile'),
                           ],
                         )

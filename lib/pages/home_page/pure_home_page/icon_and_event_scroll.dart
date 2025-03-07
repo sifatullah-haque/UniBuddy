@@ -1,5 +1,6 @@
 import 'package:diu/Constant/color_is.dart';
 import 'package:diu/pages/Specific_Club/DIU_CPC/diu_cpc.dart';
+import 'package:diu/pages/home_page/Events/event_details.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -75,25 +76,28 @@ class IconsAndEventScroll extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                _roundedImageContainer("assets/banner/events/event1.jpg"),
+                _roundedImageContainer(
+                    "assets/banner/events/event1.jpg", context),
+                SizedBox(
+                  width: 10.w,
+                ),
+                _roundedImageContainer("assets/banner/events/event2.jpg",
+                    context), // Placeholder Container
                 SizedBox(
                   width: 10.w,
                 ),
                 _roundedImageContainer(
-                    "assets/banner/events/event2.jpg"), // Placeholder Container
-                SizedBox(
-                  width: 10.w,
-                ),
-                _roundedImageContainer("assets/banner/events/event3.jpg"),
-                SizedBox(
-                  width: 10.w,
-                ),
-                _roundedImageContainer("assets/banner/events/event4.jpg"),
+                    "assets/banner/events/event3.jpg", context),
                 SizedBox(
                   width: 10.w,
                 ),
                 _roundedImageContainer(
-                    "assets/banner/events/event5.jpg"), // Placeholder Container
+                    "assets/banner/events/event4.jpg", context),
+                SizedBox(
+                  width: 10.w,
+                ),
+                _roundedImageContainer("assets/banner/events/event5.jpg",
+                    context), // Placeholder Container
               ],
             ),
           )
@@ -102,23 +106,40 @@ class IconsAndEventScroll extends StatelessWidget {
     );
   }
 
-  Widget _roundedImageContainer(String? imagePath) {
-    return Container(
-      height: 80.0,
-      width: 135.0,
-      decoration: BoxDecoration(
-        color: Coloris.primary_color,
-        borderRadius: BorderRadius.circular(10.0),
-      ),
-      child: imagePath != null
-          ? ClipRRect(
-              borderRadius: BorderRadius.circular(10.0),
-              child: Image.asset(
-                imagePath,
-                fit: BoxFit.cover,
+  Widget _roundedImageContainer(String? imagePath, BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        if (imagePath != null) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => EventDetails(
+                title: "Tech Fest 2024",
+                imagePath: imagePath,
+                date: "March 15, 2024",
+                venue: "DIU Campus",
               ),
-            )
-          : null, // Placeholder if imagePath is null
+            ),
+          );
+        }
+      },
+      child: Container(
+        height: 80.0,
+        width: 135.0,
+        decoration: BoxDecoration(
+          color: Coloris.primary_color,
+          borderRadius: BorderRadius.circular(10.0),
+        ),
+        child: imagePath != null
+            ? ClipRRect(
+                borderRadius: BorderRadius.circular(10.0),
+                child: Image.asset(
+                  imagePath,
+                  fit: BoxFit.cover,
+                ),
+              )
+            : null,
+      ),
     );
   }
 }

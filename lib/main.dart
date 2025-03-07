@@ -6,6 +6,7 @@ import 'package:diu/pages/home_page/Class_Schedule/classSchedule.dart';
 import 'package:diu/pages/home_page/Emergency/emergency.dart';
 import 'package:diu/pages/home_page/Lost_Item/lostItem.dart';
 import 'package:diu/pages/home_page/askBot/askBot.dart';
+import 'package:diu/pages/home_page/chat/chat.dart';
 import 'package:diu/pages/home_page/pure_home_page/home_page.dart';
 import 'package:diu/pages/main_navigation.dart';
 import 'package:diu/pages/notifications/notifications.dart';

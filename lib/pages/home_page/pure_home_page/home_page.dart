@@ -1,4 +1,5 @@
 import 'package:diu/Constant/color_is.dart';
+import 'package:diu/pages/home_page/askBot/askBot.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -121,32 +122,38 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildRedContainer() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Coloris.white,
-        borderRadius: BorderRadius.circular(15.0),
-      ),
-      alignment: Alignment.center,
-      height: 55.h,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.chat,
-            color: Coloris.primary_color,
-            size: 25.0,
-          ),
-          const SizedBox(
-            width: 10.0,
-          ),
-          const Text(
-            "Ask Bot",
-            style: TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 18.0,
-                color: Coloris.primary_color),
-          )
-        ],
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+            context, MaterialPageRoute(builder: (context) => AskBot()));
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Coloris.white,
+          borderRadius: BorderRadius.circular(15.0),
+        ),
+        alignment: Alignment.center,
+        height: 55.h,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.chat,
+              color: Coloris.primary_color,
+              size: 25.0,
+            ),
+            const SizedBox(
+              width: 10.0,
+            ),
+            const Text(
+              "Ask Bot",
+              style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 18.0,
+                  color: Coloris.primary_color),
+            )
+          ],
+        ),
       ),
     );
   }

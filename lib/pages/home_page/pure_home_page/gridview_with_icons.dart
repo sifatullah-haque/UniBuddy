@@ -4,9 +4,11 @@ import 'package:diu/pages/home_page/Certificate/certificate.dart';
 import 'package:diu/pages/home_page/Class_Schedule/classSchedule.dart';
 import 'package:diu/pages/home_page/Daily_Streak/daily_streak.dart';
 import 'package:diu/pages/home_page/Emergency/emergency.dart';
+import 'package:diu/pages/home_page/Events/events.dart';
 import 'package:diu/pages/home_page/Idea/Idea.dart';
 import 'package:diu/pages/home_page/Join_Club/join_club.dart';
 import 'package:diu/pages/home_page/Leaderboard/leaderboard.dart';
+import 'package:diu/pages/home_page/Lost_Item/lostItem.dart';
 import 'package:diu/pages/home_page/Personal_Data/personal_data.dart';
 import 'package:diu/pages/home_page/Support/Support.dart';
 import 'package:diu/pages/home_page/Volunteer/volunteer.dart';
@@ -62,12 +64,12 @@ class _GridviewWithIconsState extends State<GridviewWithIcons> {
       {
         "title": "Lost Item",
         "icon": "IDEA",
-        "destination": Idea(),
+        "destination": LostItem(),
       },
       {
-        "title": "Find Class",
+        "title": "Events",
         "icon": "findClass",
-        "destination": Support(),
+        "destination": Events(),
       },
     ],
     // Second Page

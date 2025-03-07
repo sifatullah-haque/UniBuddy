@@ -1,5 +1,6 @@
 import 'package:diu/Constant/firebase_options.dart';
 import 'package:diu/auth/login/isLogin.dart';
+import 'package:diu/auth/login/login.dart';
 import 'package:diu/pages/home_page/Bus_Schedule/busSchedule.dart';
 import 'package:diu/pages/home_page/Cafeteria/cafeteria.dart';
 import 'package:diu/pages/home_page/Class_Schedule/classSchedule.dart';
@@ -36,7 +37,7 @@ class MyApp extends StatelessWidget {
             fontFamily: "Poppins",
           ),
           debugShowCheckedModeBanner: false,
-          home: MainNavigation()),
+          home: IsLogin()),
     );
   }
 }

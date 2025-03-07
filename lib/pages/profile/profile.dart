@@ -1,6 +1,7 @@
 import 'package:diu/Constant/color_is.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class Profile extends StatelessWidget {
   const Profile({super.key});
@@ -14,6 +15,7 @@ class Profile extends StatelessWidget {
           _buildHeader(),
           _buildProfileInfo(),
           _buildProfileOptions(),
+          SizedBox(height: 90.h),
         ],
       ),
     );
@@ -157,6 +159,7 @@ class Profile extends StatelessWidget {
         ],
       ),
       child: ListTile(
+        onTap: isLogout ? () => FirebaseAuth.instance.signOut() : null,
         leading: Icon(
           icon,
           color: isLogout ? Colors.red : const Color(0xff6686F6),

@@ -15,13 +15,35 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
-
   final _passwordController = TextEditingController();
+  bool _isLoading = false;
+  bool _obscurePassword = true;
 
   Future signIn() async {
-    await FirebaseAuth.instance.signInWithEmailAndPassword(
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
-        password: _passwordController.text.trim());
+        password: _passwordController.text.trim(),
+      );
+    } on FirebaseAuthException catch (e) {
+      String errorMessage = 'An error occurred';
+      if (e.code == 'user-not-found') {
+        errorMessage = 'No user found with this email';
+      } else if (e.code == 'wrong-password') {
+        errorMessage = 'Wrong password';
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(errorMessage)),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -101,10 +123,24 @@ class _LoginPageState extends State<LoginPage> {
                     SizedBox(height: 20.h),
                     TextField(
                       controller: _passwordController,
+                      obscureText: _obscurePassword,
                       decoration: InputDecoration(
                         prefixIcon: const Icon(
                           Icons.lock_rounded,
                           color: Coloris.text_color,
+                        ),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                            color: Coloris.text_color,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _obscurePassword = !_obscurePassword;
+                            });
+                          },
                         ),
                         hintText: "Enter Your Password",
                         hintStyle: const TextStyle(
@@ -153,8 +189,8 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     SizedBox(height: 20.h),
                     Common_Button(
-                      text: "Login",
-                      onpressed: signIn,
+                      text: _isLoading ? "Loading..." : "Login",
+                      onpressed: _isLoading ? null : signIn,
                     ),
                     SizedBox(height: 20.h),
                     Row(

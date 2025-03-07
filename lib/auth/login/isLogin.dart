@@ -1,5 +1,6 @@
 import 'package:diu/auth/auth_page.dart';
 import 'package:diu/pages/home_page/pure_home_page/home_page.dart';
+import 'package:diu/pages/main_navigation.dart';
 import 'package:diu/willDeleteLater/home.dart';
 import 'package:diu/willDeleteLater/test.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -15,15 +16,11 @@ class IsLogin extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      floatingActionButton: FloatingActionButton(
-        onPressed: _signOut,
-        child: Icon(Icons.logout),
-      ),
       body: StreamBuilder(
         stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, snapshot) {
           if (snapshot.hasData) {
-            return HomePageTest();
+            return MainNavigation();
           } else {
             return AuthPage();
           }

@@ -6,81 +6,85 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-class RegisterPage extends StatelessWidget {
+class RegisterPage extends StatefulWidget {
   final VoidCallback showLoginPage;
   RegisterPage({Key? key, required this.showLoginPage}) : super(key: key);
 
+  @override
+  State<RegisterPage> createState() => _RegisterPageState();
+}
+
+class _RegisterPageState extends State<RegisterPage> {
   final _emailController = TextEditingController();
-
   final _passwordController = TextEditingController();
-
   final _firstNameController = TextEditingController();
-
   final _lastNameController = TextEditingController();
-
   final _phoneController = TextEditingController();
-
   final _confirmPasswordController = TextEditingController();
-
   final _rollNumberController = TextEditingController();
-
   final _departmentController = TextEditingController();
-
   final _registrationNumberController = TextEditingController();
-
   final _batchNumberController = TextEditingController();
-
   final _semesterController = TextEditingController();
+  bool _isLoading = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   Future register() async {
-    //login user
-    if (passConfirm()) {
-      await FirebaseAuth.instance.createUserWithEmailAndPassword(
-          email: _emailController.text.trim(),
-          password: _passwordController.text.trim());
+    if (!passConfirm()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Passwords do not match')),
+      );
+      return;
     }
 
-    //addUser
-    await addUserDetails(
-      _firstNameController.text.trim(),
-      _lastNameController.text.trim(),
-      int.parse(_phoneController.text.trim()),
-      int.parse(_rollNumberController.text.trim()),
-      _batchNumberController.text.trim(),
-      _registrationNumberController.text.trim(),
-      _departmentController.text.trim(),
-      _semesterController.text.trim(),
-      _emailController.text.trim(),
-      _passwordController.text.trim(),
-    );
-  }
-
-  Future addUserDetails(
-      String firstName,
-      String lastName,
-      int phoneNo,
-      int rollNo,
-      String batchNo,
-      String registrationNo,
-      String deptName,
-      String semesterNo,
-      String emailAdd,
-      String pass) async {
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .set({
-      'firstName': firstName,
-      'lastName': lastName,
-      'phoneNo': phoneNo,
-      'rollNo': rollNo,
-      'batchNo': batchNo,
-      'registrationNo': registrationNo,
-      'deptName': deptName,
-      'semesterNo': semesterNo,
-      'email': emailAdd,
-      'password': pass,
+    setState(() {
+      _isLoading = true;
     });
+
+    try {
+      // Create user
+      final userCredential =
+          await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+
+      // Add user details
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userCredential.user!.uid)
+          .set({
+        'firstName': _firstNameController.text.trim(),
+        'lastName': _lastNameController.text.trim(),
+        'phoneNo': int.tryParse(_phoneController.text.trim()) ?? 0,
+        'rollNo': int.tryParse(_rollNumberController.text.trim()) ?? 0,
+        'batchNo': _batchNumberController.text.trim(),
+        'registrationNo': _registrationNumberController.text.trim(),
+        'deptName': _departmentController.text.trim(),
+        'semesterNo': _semesterController.text.trim(),
+        'email': _emailController.text.trim(),
+        'password': _passwordController.text.trim(),
+      });
+    } on FirebaseAuthException catch (e) {
+      String errorMessage = 'Registration failed';
+      if (e.code == 'weak-password') {
+        errorMessage = 'The password provided is too weak';
+      } else if (e.code == 'email-already-in-use') {
+        errorMessage = 'An account already exists for this email';
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(errorMessage)),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('An error occurred during registration')),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   bool passConfirm() {
@@ -209,6 +213,12 @@ class RegisterPage extends StatelessWidget {
                   hintText: "Enter Your Password",
                   labelText: "Password",
                   prefixIcon: Icons.lock_rounded,
+                  obscureText: _obscurePassword,
+                  onToggleObscure: () {
+                    setState(() {
+                      _obscurePassword = !_obscurePassword;
+                    });
+                  },
                 ),
                 SizedBox(height: 20.h),
                 InputTextField(
@@ -216,11 +226,17 @@ class RegisterPage extends StatelessWidget {
                   hintText: "Confirm Password",
                   labelText: "Confirm Password",
                   prefixIcon: Icons.lock_rounded,
+                  obscureText: _obscureConfirmPassword,
+                  onToggleObscure: () {
+                    setState(() {
+                      _obscureConfirmPassword = !_obscureConfirmPassword;
+                    });
+                  },
                 ),
                 SizedBox(height: 20.h),
                 Common_Button(
-                  onpressed: register,
-                  text: "Register",
+                  onpressed: _isLoading ? null : register,
+                  text: _isLoading ? "Loading..." : "Register",
                   size: 150,
                 ),
                 SizedBox(height: 20.h),
@@ -237,7 +253,7 @@ class RegisterPage extends StatelessWidget {
                     ),
                     SizedBox(width: 10.w),
                     GestureDetector(
-                      onTap: showLoginPage,
+                      onTap: widget.showLoginPage,
                       child: Expanded(
                         child: Text(
                           "Login Now",
@@ -265,6 +281,8 @@ class InputTextField extends StatelessWidget {
   final String labelText;
   final IconData? prefixIcon;
   final TextEditingController fieldTextController;
+  final bool? obscureText;
+  final VoidCallback? onToggleObscure;
 
   const InputTextField({
     Key? key,
@@ -272,17 +290,29 @@ class InputTextField extends StatelessWidget {
     required this.labelText,
     required this.hintText,
     this.prefixIcon,
+    this.obscureText,
+    this.onToggleObscure,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return TextField(
       controller: fieldTextController,
+      obscureText: obscureText ?? false,
       decoration: InputDecoration(
         prefixIcon: prefixIcon != null
             ? Icon(
                 prefixIcon,
                 color: Coloris.text_color,
+              )
+            : null,
+        suffixIcon: obscureText != null
+            ? IconButton(
+                icon: Icon(
+                  obscureText! ? Icons.visibility_off : Icons.visibility,
+                  color: Coloris.text_color,
+                ),
+                onPressed: onToggleObscure,
               )
             : null,
         hintText: hintText,

@@ -12,6 +12,7 @@ import 'package:diu/pages/home_page/Lost_Item/lostItem.dart';
 import 'package:diu/pages/home_page/Personal_Data/personal_data.dart';
 import 'package:diu/pages/home_page/Support/Support.dart';
 import 'package:diu/pages/home_page/Volunteer/volunteer.dart';
+import 'package:diu/pages/home_page/calendar/calendar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -53,22 +54,22 @@ class _GridviewWithIconsState extends State<GridviewWithIcons> {
       },
       {
         "title": "Emergency",
-        "icon": "Volunteer",
+        "icon": "emergency",
         "destination": Emergency(),
       },
       {
         "title": "Calendar",
         "icon": "Calendar",
-        "destination": PersonalData(),
+        "destination": Calendar(),
       },
       {
         "title": "Lost Item",
-        "icon": "IDEA",
+        "icon": "lost",
         "destination": LostItem(),
       },
       {
         "title": "Events",
-        "icon": "findClass",
+        "icon": "events",
         "destination": Events(),
       },
     ],

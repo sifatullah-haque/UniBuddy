@@ -1,4 +1,5 @@
 import 'package:diu/pages/home_page/Certificate/certificate.dart';
+import 'package:diu/pages/home_page/Class_Schedule/classSchedule.dart';
 import 'package:diu/pages/home_page/Daily_Streak/daily_streak.dart';
 import 'package:diu/pages/home_page/Idea/Idea.dart';
 import 'package:diu/pages/home_page/Join_Club/join_club.dart';
@@ -41,9 +42,9 @@ class _GridviewWithIconsState extends State<GridviewWithIcons> {
         "destination": JoinClub(),
       },
       {
-        "title": "Certificates",
+        "title": "Class Times",
         "icon": "Certificates",
-        "destination": Certificate(),
+        "destination": ClassSchedule(),
       },
       {
         "title": "Volunteer",

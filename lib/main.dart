@@ -2,6 +2,8 @@ import 'package:diu/Constant/firebase_options.dart';
 import 'package:diu/auth/login/isLogin.dart';
 import 'package:diu/pages/home_page/Bus_Schedule/busSchedule.dart';
 import 'package:diu/pages/home_page/Cafeteria/cafeteria.dart';
+import 'package:diu/pages/home_page/Class_Schedule/classSchedule.dart';
+import 'package:diu/pages/home_page/askBot/askBot.dart';
 import 'package:diu/pages/home_page/pure_home_page/home_page.dart';
 import 'package:diu/pages/main_navigation.dart';
 import 'package:diu/utils/firebase_project_config.dart';
@@ -30,7 +32,7 @@ class MyApp extends StatelessWidget {
             fontFamily: "Poppins",
           ),
           debugShowCheckedModeBanner: false,
-          home: BusSchedule()),
+          home: AskBot()),
     );
   }
 }

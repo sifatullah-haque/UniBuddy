@@ -1,6 +1,9 @@
+import 'package:diu/pages/home_page/Bus_Schedule/busSchedule.dart';
+import 'package:diu/pages/home_page/Cafeteria/cafeteria.dart';
 import 'package:diu/pages/home_page/Certificate/certificate.dart';
 import 'package:diu/pages/home_page/Class_Schedule/classSchedule.dart';
 import 'package:diu/pages/home_page/Daily_Streak/daily_streak.dart';
+import 'package:diu/pages/home_page/Emergency/emergency.dart';
 import 'package:diu/pages/home_page/Idea/Idea.dart';
 import 'package:diu/pages/home_page/Join_Club/join_club.dart';
 import 'package:diu/pages/home_page/Leaderboard/leaderboard.dart';
@@ -29,12 +32,12 @@ class _GridviewWithIconsState extends State<GridviewWithIcons> {
       {
         "title": "Cafeteria",
         "icon": "cafeteria",
-        "destination": Leaderboard(),
+        "destination": Cafeteria(),
       },
       {
         "title": "Bus Schedule",
         "icon": "bus",
-        "destination": DailyStreak(),
+        "destination": BusSchedule(),
       },
       {
         "title": "Join Club",
@@ -47,9 +50,9 @@ class _GridviewWithIconsState extends State<GridviewWithIcons> {
         "destination": ClassSchedule(),
       },
       {
-        "title": "Volunteer",
+        "title": "Emergency",
         "icon": "Volunteer",
-        "destination": Volunteer(),
+        "destination": Emergency(),
       },
       {
         "title": "Calendar",
@@ -57,7 +60,7 @@ class _GridviewWithIconsState extends State<GridviewWithIcons> {
         "destination": PersonalData(),
       },
       {
-        "title": "Idea",
+        "title": "Lost Item",
         "icon": "IDEA",
         "destination": Idea(),
       },

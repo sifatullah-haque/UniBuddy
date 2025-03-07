@@ -3,9 +3,12 @@ import 'package:diu/auth/login/isLogin.dart';
 import 'package:diu/pages/home_page/Bus_Schedule/busSchedule.dart';
 import 'package:diu/pages/home_page/Cafeteria/cafeteria.dart';
 import 'package:diu/pages/home_page/Class_Schedule/classSchedule.dart';
+import 'package:diu/pages/home_page/Emergency/emergency.dart';
+import 'package:diu/pages/home_page/Lost_Item/lostItem.dart';
 import 'package:diu/pages/home_page/askBot/askBot.dart';
 import 'package:diu/pages/home_page/pure_home_page/home_page.dart';
 import 'package:diu/pages/main_navigation.dart';
+import 'package:diu/pages/notifications/notifications.dart';
 import 'package:diu/utils/firebase_project_config.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -32,7 +35,7 @@ class MyApp extends StatelessWidget {
             fontFamily: "Poppins",
           ),
           debugShowCheckedModeBanner: false,
-          home: AskBot()),
+          home: MainNavigation()),
     );
   }
 }

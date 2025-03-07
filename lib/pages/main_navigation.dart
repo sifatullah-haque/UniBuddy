@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:diu/pages/notifications/notifications.dart';
 import 'package:flutter/material.dart';
 import 'package:diu/Constant/color_is.dart';
 import 'package:diu/pages/home_page/pure_home_page/home_page.dart';
@@ -16,7 +17,7 @@ class _MainNavigationState extends State<MainNavigation> {
 
   final List<Widget> _pages = [
     HomePage(),
-    Center(child: Text('Meal')),
+    Notifications(),
     Center(child: Text('Bus')),
     Center(child: Text('Class')),
     Center(child: Text('Profile')),

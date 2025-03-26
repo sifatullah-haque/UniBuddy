@@ -11,6 +11,9 @@ class LostItemModel {
   final String batchName; // New field
   final DateTime dateLost; // New field
   final String? imageBase64; // Add this field instead of imageUrl
+  final String? foundBy;
+  final String? foundByBatch;
+  final String? foundByContact;
 
   LostItemModel({
     required this.id,
@@ -25,6 +28,9 @@ class LostItemModel {
     required this.dateLost,
     this.imageBase64, // Replace imageUrl with this
     this.isFound = false,
+    this.foundBy,
+    this.foundByBatch,
+    this.foundByContact,
   });
 
   Map<String, dynamic> toMap() {
@@ -40,6 +46,9 @@ class LostItemModel {
       'batchName': batchName,
       'dateLost': dateLost.toIso8601String(),
       'imageBase64': imageBase64, // Replace imageUrl with this
+      'foundBy': foundBy,
+      'foundByBatch': foundByBatch,
+      'foundByContact': foundByContact,
     };
   }
 
@@ -57,6 +66,9 @@ class LostItemModel {
       batchName: map['batchName'] ?? '',
       dateLost: DateTime.parse(map['dateLost'] as String),
       imageBase64: map['imageBase64'], // Replace imageUrl with this
+      foundBy: map['foundBy'],
+      foundByBatch: map['foundByBatch'],
+      foundByContact: map['foundByContact'],
     );
   }
 }

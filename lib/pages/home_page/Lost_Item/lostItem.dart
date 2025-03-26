@@ -28,6 +28,9 @@ class _LostItemState extends State<LostItem> {
   final _lostByController = TextEditingController();
   final _batchNameController = TextEditingController();
   final _dateLostController = TextEditingController();
+  final _foundByController = TextEditingController();
+  final _foundByBatchController = TextEditingController();
+  final _foundByContactController = TextEditingController();
   DateTime? _selectedDate;
   File? _selectedImage;
   bool _isLoading = false;
@@ -41,6 +44,9 @@ class _LostItemState extends State<LostItem> {
     _lostByController.dispose();
     _batchNameController.dispose();
     _dateLostController.dispose();
+    _foundByController.dispose();
+    _foundByBatchController.dispose();
+    _foundByContactController.dispose();
     super.dispose();
   }
 
@@ -241,16 +247,132 @@ class _LostItemState extends State<LostItem> {
     }
   }
 
-  Future<void> _markAsFound(String itemId) async {
-    try {
-      await FirebaseFirestore.instance
-          .collection('lostItems')
-          .doc(itemId)
-          .update({'isFound': true});
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error updating item status: $e')),
-      );
+  void _handleCardTap(LostItemModel item) {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null && currentUser.uid == item.userId) {
+      _showDeleteConfirmation(item);
+    }
+  }
+
+  void _showDeleteConfirmation(LostItemModel item) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Delete Lost Item'),
+        content: Text('Are you sure you want to delete this lost item alert?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              try {
+                await FirebaseFirestore.instance
+                    .collection('lostItems')
+                    .doc(item.id)
+                    .delete();
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Item deleted successfully')),
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error deleting item: $e')),
+                );
+              }
+            },
+            child: Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _markAsFound(String itemId, String ownerId) async {
+    _foundByController.clear();
+    _foundByBatchController.clear();
+    _foundByContactController.clear();
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Found Item Details'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _foundByController,
+              decoration: InputDecoration(
+                labelText: 'Found By',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            SizedBox(height: 10),
+            TextField(
+              controller: _foundByBatchController,
+              decoration: InputDecoration(
+                labelText: 'Batch No.',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            SizedBox(height: 10),
+            TextField(
+              controller: _foundByContactController,
+              decoration: InputDecoration(
+                labelText: 'Contact Number',
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.phone,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text('Submit'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true) {
+      try {
+        // Update item status
+        await FirebaseFirestore.instance
+            .collection('lostItems')
+            .doc(itemId)
+            .update({
+          'isFound': true,
+          'foundBy': _foundByController.text,
+          'foundByBatch': _foundByBatchController.text,
+          'foundByContact': _foundByContactController.text,
+        });
+
+        // Create notification
+        await FirebaseFirestore.instance.collection('notifications').add({
+          'userId': ownerId,
+          'title': 'Item Found!',
+          'message':
+              '${_foundByController.text} found your item. Contact: ${_foundByContactController.text}',
+          'timestamp': FieldValue.serverTimestamp(), // Use server timestamp
+          'isRead': false,
+          'type': 'found_item',
+          'relatedItemId': itemId,
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Item marked as found and owner notified')),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error updating item status: $e')),
+        );
+      }
     }
   }
 
@@ -342,127 +464,149 @@ class _LostItemState extends State<LostItem> {
   }
 
   Widget _buildLostItemCard(LostItemModel item) {
-    return Container(
-      margin: EdgeInsets.only(bottom: 15.h),
-      decoration: BoxDecoration(
-        color: Coloris.white,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 10,
-            offset: const Offset(0, 1),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: EdgeInsets.all(12.w),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                GestureDetector(
-                  onTap: () {
-                    if (item.imageBase64 != null &&
-                        item.imageBase64!.isNotEmpty) {
-                      _showFullImageBase64(context, item.imageBase64!);
-                    }
-                  },
-                  child: Container(
-                    height: 80.h,
-                    width: 80.w,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      color: Colors.grey[200],
-                    ),
-                    child:
-                        item.imageBase64 != null && item.imageBase64!.isNotEmpty
-                            ? ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: Image.memory(
-                                  base64Decode(item.imageBase64!),
-                                  fit: BoxFit.cover,
-                                ),
-                              )
-                            : Icon(
-                                Icons.image,
-                                color: Colors.grey[400],
-                                size: 30,
-                              ),
-                  ),
-                ),
-                SizedBox(width: 15.w),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item.title,
-                        style: TextStyle(
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.w600,
-                          color: Coloris.text_color,
-                        ),
-                      ),
-                      SizedBox(height: 5.h),
-                      Text(
-                        "Lost in ${item.location}",
-                        style: TextStyle(
-                          fontSize: 14.sp,
-                          color: Coloris.text_color.withOpacity(0.7),
-                        ),
-                      ),
-                      SizedBox(height: 5.h),
-                      Text(
-                        "Lost By: ${item.lostBy} (${item.batchName})",
-                        style: TextStyle(
-                          fontSize: 14.sp,
-                          color: Coloris.text_color.withOpacity(0.7),
-                        ),
-                      ),
-                      SizedBox(height: 5.h),
-                      Text(
-                        "Contact: ${item.contact}",
-                        style: TextStyle(
-                          fontSize: 14.sp,
-                          color: Coloris.text_color.withOpacity(0.7),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+    return GestureDetector(
+      onTap: () => _handleCardTap(item),
+      child: Container(
+        margin: EdgeInsets.only(bottom: 15.h),
+        decoration: BoxDecoration(
+          color: Coloris.white,
+          borderRadius: BorderRadius.circular(15),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              spreadRadius: 1,
+              blurRadius: 10,
+              offset: const Offset(0, 1),
             ),
-            SizedBox(height: 10.h),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  "Lost on: ${item.dateLost.toString().split(' ')[0]}",
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    color: Coloris.text_color.withOpacity(0.7),
-                  ),
-                ),
-                if (!item.isFound)
+          ],
+        ),
+        child: Padding(
+          padding: EdgeInsets.all(12.w),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   GestureDetector(
-                    onTap: () => _markAsFound(item.id),
+                    onTap: () {
+                      if (item.imageBase64 != null &&
+                          item.imageBase64!.isNotEmpty) {
+                        _showFullImageBase64(context, item.imageBase64!);
+                      }
+                    },
                     child: Container(
+                      height: 80.h,
+                      width: 80.w,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        color: Colors.grey[200],
+                      ),
+                      child: item.imageBase64 != null &&
+                              item.imageBase64!.isNotEmpty
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Image.memory(
+                                base64Decode(item.imageBase64!),
+                                fit: BoxFit.cover,
+                              ),
+                            )
+                          : Icon(
+                              Icons.image,
+                              color: Colors.grey[400],
+                              size: 30,
+                            ),
+                    ),
+                  ),
+                  SizedBox(width: 15.w),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item.title,
+                          style: TextStyle(
+                            fontSize: 18.sp,
+                            fontWeight: FontWeight.w600,
+                            color: Coloris.text_color,
+                          ),
+                        ),
+                        SizedBox(height: 5.h),
+                        Text(
+                          "Lost in ${item.location}",
+                          style: TextStyle(
+                            fontSize: 14.sp,
+                            color: Coloris.text_color.withOpacity(0.7),
+                          ),
+                        ),
+                        SizedBox(height: 5.h),
+                        Text(
+                          "Lost By: ${item.lostBy} (${item.batchName})",
+                          style: TextStyle(
+                            fontSize: 14.sp,
+                            color: Coloris.text_color.withOpacity(0.7),
+                          ),
+                        ),
+                        SizedBox(height: 5.h),
+                        Text(
+                          "Contact: ${item.contact}",
+                          style: TextStyle(
+                            fontSize: 14.sp,
+                            color: Coloris.text_color.withOpacity(0.7),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 10.h),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "Lost on: ${item.dateLost.toString().split(' ')[0]}",
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      color: Coloris.text_color.withOpacity(0.7),
+                    ),
+                  ),
+                  if (!item.isFound)
+                    GestureDetector(
+                      onTap: () => _markAsFound(item.id, item.userId),
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 15.w,
+                          vertical: 6.h,
+                        ),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xff6686F6), Color(0xff60BBEF)],
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          "Found it!",
+                          style: TextStyle(
+                            color: Coloris.white,
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                  if (item.isFound)
+                    Container(
                       padding: EdgeInsets.symmetric(
                         horizontal: 15.w,
                         vertical: 6.h,
                       ),
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xff6686F6), Color(0xff60BBEF)],
-                        ),
+                        color: Colors.green,
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        "Found it!",
+                        "Found",
                         style: TextStyle(
                           color: Coloris.white,
                           fontSize: 12.sp,
@@ -470,36 +614,10 @@ class _LostItemState extends State<LostItem> {
                         ),
                       ),
                     ),
-                  ),
-                if (item.isFound)
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 15.w,
-                      vertical: 6.h,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.green,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      "Found",
-                      style: TextStyle(
-                        color: Coloris.white,
-                        fontSize: 12.sp,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            // if (item.imageBase64 != null)
-            //   Image.memory(
-            //     base64Decode(item.imageBase64!),
-            //     fit: BoxFit.cover,
-            //     height: 200,
-            //     width: double.infinity,
-            //   ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

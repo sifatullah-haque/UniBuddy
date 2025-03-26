@@ -56,85 +56,97 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // appBar: AppBar(
-      //   toolbarHeight: 0,
-      //   backgroundColor: Coloris.backgroundColor,
-      //   elevation: 0,
-      // ),
-      resizeToAvoidBottomInset: true,
       backgroundColor: Coloris.backgroundColor,
       body: SingleChildScrollView(
         child: Column(
           children: [
+            Container(
+              height: 120.h,
+              decoration: const BoxDecoration(
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(30.0),
+                  bottomRight: Radius.circular(30.0),
+                ),
+                gradient: LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: [Color(0xff6686F6), Color(0xff60BBEF)],
+                ),
+              ),
+              child: SafeArea(
+                child: Center(
+                  child: Text(
+                    "Welcome Back!",
+                    style: TextStyle(
+                      fontSize: 20.sp,
+                      fontWeight: FontWeight.w600,
+                      color: Coloris.white,
+                    ),
+                  ),
+                ),
+              ),
+            ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 25.0),
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    SizedBox(height: 150.h),
-                    Image.asset(
-                      "assets/svg/diu.png",
-                      height: 100.h,
+              padding: EdgeInsets.all(25.w),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Image.asset(
+                    "assets/svg/diu.png",
+                    height: 80.h,
+                  ),
+                  SizedBox(height: 30.h),
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                          color: Coloris.text_color.withOpacity(0.2)),
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    SizedBox(height: 30.h),
-                    Text(
-                      "Welcome Back !!!",
-                      style: TextStyle(
-                          color: Colors.grey.shade700,
-                          fontSize: 30.sp,
-                          fontWeight: FontWeight.w600),
-                    ),
-                    SizedBox(height: 20.h),
-                    TextField(
+                    child: TextField(
                       controller: _emailController,
                       decoration: InputDecoration(
-                        prefixIcon: const Icon(
-                          Icons.email,
-                          color: Coloris.text_color,
-                        ),
+                        prefixIcon: Icon(Icons.email, color: Color(0xff6686F6)),
                         hintText: "Enter Your Email",
-                        hintStyle: const TextStyle(
-                          color: Coloris.secondary_color,
-                          fontWeight: FontWeight.w400,
+                        hintStyle: TextStyle(
+                          color: Coloris.text_color.withOpacity(0.5),
+                          fontSize: 14.sp,
                         ),
-                        label: Text(
-                          "Email",
-                          style: TextStyle(
-                              fontSize: 20.sp, color: Coloris.text_color),
-                        ),
+                        contentPadding: EdgeInsets.symmetric(
+                            horizontal: 15.w, vertical: 12.h),
+                        border: InputBorder.none,
                         enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide(
-                            color: Colors.grey.shade600,
-                            width: 1.0.w,
-                          ),
                           borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: Colors.transparent),
                         ),
                         focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(
-                            color: Colors.blue,
-                            width: 1.5.w,
-                          ),
                           borderRadius: BorderRadius.circular(10),
+                          borderSide:
+                              BorderSide(color: Color(0xff6686F6), width: 1),
                         ),
+                        filled: true,
+                        fillColor: Coloris.white,
                       ),
                     ),
-                    SizedBox(height: 20.h),
-                    TextField(
+                  ),
+                  SizedBox(height: 20.h),
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                          color: Coloris.text_color.withOpacity(0.2)),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: TextField(
                       controller: _passwordController,
                       obscureText: _obscurePassword,
                       decoration: InputDecoration(
-                        prefixIcon: const Icon(
-                          Icons.lock_rounded,
-                          color: Coloris.text_color,
-                        ),
+                        prefixIcon:
+                            Icon(Icons.lock_rounded, color: Color(0xff6686F6)),
                         suffixIcon: IconButton(
                           icon: Icon(
                             _obscurePassword
                                 ? Icons.visibility_off
                                 : Icons.visibility,
-                            color: Coloris.text_color,
+                            color: Color(0xff6686F6),
                           ),
                           onPressed: () {
                             setState(() {
@@ -143,78 +155,109 @@ class _LoginPageState extends State<LoginPage> {
                           },
                         ),
                         hintText: "Enter Your Password",
-                        hintStyle: const TextStyle(
-                          color: Coloris.secondary_color,
-                          fontWeight: FontWeight.w400,
+                        hintStyle: TextStyle(
+                          color: Coloris.text_color.withOpacity(0.5),
+                          fontSize: 14.sp,
                         ),
-                        label: Text(
-                          "Password",
-                          style: TextStyle(
-                              fontSize: 18.sp, color: Coloris.text_color),
-                        ),
+                        contentPadding: EdgeInsets.symmetric(
+                            horizontal: 15.w, vertical: 12.h),
+                        border: InputBorder.none,
                         enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide(
-                            color: Colors.grey.shade600,
-                            width: 1.0.w,
-                          ),
                           borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: Colors.transparent),
                         ),
                         focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(
-                            color: Colors.blue,
-                            width: 1.5.w,
-                          ),
                           borderRadius: BorderRadius.circular(10),
+                          borderSide:
+                              BorderSide(color: Color(0xff6686F6), width: 1),
+                        ),
+                        filled: true,
+                        fillColor: Coloris.white,
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 15.h),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => ForgotPassword()));
+                      },
+                      child: Text(
+                        "Forgot Password?",
+                        style: TextStyle(
+                          color: Color(0xff6686F6),
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ),
-                    SizedBox(height: 10.h),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => ForgotPassword(),
-                                ));
-                          },
-                          child: Text("Forgot Password?",
-                              style: TextStyle(
-                                  color: Coloris.primary_color,
-                                  fontSize: 18.sp)),
-                        )
-                      ],
+                  ),
+                  SizedBox(height: 30.h),
+                  GestureDetector(
+                    onTap: _isLoading ? null : signIn,
+                    child: Container(
+                      width: double.infinity,
+                      height: 45.h,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          colors: [Color(0xff6686F6), Color(0xff60BBEF)],
+                        ),
+                        borderRadius: BorderRadius.circular(25),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xff6686F6).withOpacity(0.3),
+                            spreadRadius: 1,
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: Text(
+                          _isLoading ? "Loading..." : "Login",
+                          style: TextStyle(
+                            color: Coloris.white,
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
                     ),
-                    SizedBox(height: 20.h),
-                    Common_Button(
-                      text: _isLoading ? "Loading..." : "Login",
-                      onpressed: _isLoading ? null : signIn,
-                    ),
-                    SizedBox(height: 20.h),
-                    Row(
-                      children: [
-                        Text("Not a member yet?",
-                            style: TextStyle(
-                                color: Coloris.secondary_color,
-                                fontSize: 18.sp)),
-                        SizedBox(width: 10.w),
-                        GestureDetector(
-                          onTap: widget.showRegisterPage,
-                          child: Text("Register Now",
-                              style: TextStyle(
-                                  color: Coloris.primary_color,
-                                  fontSize: 18.sp)),
-                        )
-                      ],
-                    ),
-                  ],
-                ),
+                  ),
+                  SizedBox(height: 20.h),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        "Not a member yet?",
+                        style: TextStyle(
+                          color: Coloris.text_color.withOpacity(0.7),
+                          fontSize: 16.sp,
+                        ),
+                      ),
+                      SizedBox(width: 10.w),
+                      GestureDetector(
+                        onTap: widget.showRegisterPage,
+                        child: Text(
+                          "Register Now",
+                          style: TextStyle(
+                            color: Color(0xff6686F6),
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-            SizedBox(height: MediaQuery.of(context).viewInsets.bottom),
-            Image.asset("assets/svg/button_svg.png")
           ],
         ),
       ),

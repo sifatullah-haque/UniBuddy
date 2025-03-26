@@ -98,248 +98,262 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Coloris.backgroundColor,
-        toolbarHeight: 0,
-      ),
-      resizeToAvoidBottomInset: true,
       backgroundColor: Coloris.backgroundColor,
       body: SingleChildScrollView(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                SizedBox(height: 50.h),
-                Image.asset(
-                  "assets/svg/diu.png",
-                  height: 100.h,
+        child: Column(
+          children: [
+            // Gradient Header
+            Container(
+              height: 120.h,
+              decoration: const BoxDecoration(
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(30.0),
+                  bottomRight: Radius.circular(30.0),
                 ),
-                SizedBox(height: 30.h),
-                Text(
-                  "Create an Account",
-                  style: TextStyle(
-                    color: Colors.grey.shade700,
-                    fontSize: 30.sp,
-                    fontWeight: FontWeight.w600,
+                gradient: LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: [Color(0xff6686F6), Color(0xff60BBEF)],
+                ),
+              ),
+              child: SafeArea(
+                child: Center(
+                  child: Text(
+                    "Create an account",
+                    style: TextStyle(
+                      fontSize: 20.sp,
+                      fontWeight: FontWeight.w600,
+                      color: Coloris.white,
+                    ),
                   ),
                 ),
-                SizedBox(height: 20.h),
-                Row(
-                  children: [
-                    Expanded(
-                      child: InputTextField(
-                        fieldTextController: _firstNameController,
-                        labelText: "First Name",
-                        hintText: "Sifatullah",
-                      ),
-                    ),
-                    SizedBox(width: 10.w),
-                    Expanded(
-                      child: InputTextField(
-                        fieldTextController: _lastNameController,
-                        labelText: "Last Name",
-                        hintText: "Haque",
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 20.h),
-                InputTextField(
-                  fieldTextController: _phoneController,
-                  hintText: "018XXXXXXXX",
-                  labelText: "Phone No.",
-                  prefixIcon: Icons.phone,
-                ),
-                SizedBox(height: 20.h),
-                Row(
-                  children: [
-                    Expanded(
-                      child: InputTextField(
-                        fieldTextController: _rollNumberController,
-                        labelText: "Roll No.",
-                        hintText: "10",
-                      ),
-                    ),
-                    SizedBox(width: 10.w),
-                    Expanded(
-                      child: InputTextField(
-                        fieldTextController: _batchNumberController,
-                        labelText: "Batch No.",
-                        hintText: "D-78(A)",
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 20.h),
-                InputTextField(
-                  fieldTextController: _registrationNumberController,
-                  hintText: "CS-D-78-22-120***",
-                  labelText: "Registration No.",
-                  prefixIcon: Icons.format_align_center_rounded,
-                ),
-                SizedBox(height: 20.h),
-                Row(
-                  children: [
-                    Expanded(
-                      child: InputTextField(
-                        fieldTextController: _departmentController,
-                        labelText: "Dept. Name.",
-                        hintText: "CSE",
-                      ),
-                    ),
-                    SizedBox(width: 10.w),
-                    Expanded(
-                      child: InputTextField(
-                        fieldTextController: _semesterController,
-                        labelText: "Semester No.",
-                        hintText: "5",
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 20.h),
-                InputTextField(
-                  fieldTextController: _emailController,
-                  hintText: "Enter Your Email",
-                  labelText: "Email",
-                  prefixIcon: Icons.email_rounded,
-                ),
-                SizedBox(height: 20.h),
-                InputTextField(
-                  fieldTextController: _passwordController,
-                  hintText: "Enter Your Password",
-                  labelText: "Password",
-                  prefixIcon: Icons.lock_rounded,
-                  obscureText: _obscurePassword,
-                  onToggleObscure: () {
-                    setState(() {
-                      _obscurePassword = !_obscurePassword;
-                    });
-                  },
-                ),
-                SizedBox(height: 20.h),
-                InputTextField(
-                  fieldTextController: _confirmPasswordController,
-                  hintText: "Confirm Password",
-                  labelText: "Confirm Password",
-                  prefixIcon: Icons.lock_rounded,
-                  obscureText: _obscureConfirmPassword,
-                  onToggleObscure: () {
-                    setState(() {
-                      _obscureConfirmPassword = !_obscureConfirmPassword;
-                    });
-                  },
-                ),
-                SizedBox(height: 20.h),
-                Common_Button(
-                  onpressed: _isLoading ? null : register,
-                  text: _isLoading ? "Loading..." : "Register",
-                  size: 150,
-                ),
-                SizedBox(height: 20.h),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        "Already a member?",
-                        style: TextStyle(
-                          color: Coloris.secondary_color,
-                          fontSize: 18.sp,
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.all(25.w),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Form fields with updated styling
+                  _buildFormFields(),
+                  SizedBox(height: 30.h),
+                  // Register Button
+                  GestureDetector(
+                    onTap: _isLoading ? null : register,
+                    child: Container(
+                      width: double.infinity,
+                      height: 45.h,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          colors: [Color(0xff6686F6), Color(0xff60BBEF)],
                         ),
+                        borderRadius: BorderRadius.circular(25),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xff6686F6).withOpacity(0.3),
+                            spreadRadius: 1,
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
                       ),
-                    ),
-                    SizedBox(width: 10.w),
-                    GestureDetector(
-                      onTap: widget.showLoginPage,
-                      child: Expanded(
+                      child: Center(
                         child: Text(
-                          "Login Now",
+                          _isLoading ? "Creating Account..." : "Register",
                           style: TextStyle(
-                            color: Coloris.primary_color,
-                            fontSize: 18.sp,
+                            color: Coloris.white,
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
                     ),
-                  ],
-                ),
-                SizedBox(height: 20.h)
-              ],
+                  ),
+                  SizedBox(height: 20.h),
+                  // Login link
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        "Already have an account?",
+                        style: TextStyle(
+                          color: Coloris.text_color.withOpacity(0.7),
+                          fontSize: 16.sp,
+                        ),
+                      ),
+                      SizedBox(width: 10.w),
+                      GestureDetector(
+                        onTap: widget.showLoginPage,
+                        child: Text(
+                          "Login",
+                          style: TextStyle(
+                            color: Color(0xff6686F6),
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
   }
-}
 
-class InputTextField extends StatelessWidget {
-  final String hintText;
-  final String labelText;
-  final IconData? prefixIcon;
-  final TextEditingController fieldTextController;
-  final bool? obscureText;
-  final VoidCallback? onToggleObscure;
-
-  const InputTextField({
-    Key? key,
-    required this.fieldTextController,
-    required this.labelText,
-    required this.hintText,
-    this.prefixIcon,
-    this.obscureText,
-    this.onToggleObscure,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      controller: fieldTextController,
-      obscureText: obscureText ?? false,
-      decoration: InputDecoration(
-        prefixIcon: prefixIcon != null
-            ? Icon(
-                prefixIcon,
-                color: Coloris.text_color,
-              )
-            : null,
-        suffixIcon: obscureText != null
-            ? IconButton(
-                icon: Icon(
-                  obscureText! ? Icons.visibility_off : Icons.visibility,
-                  color: Coloris.text_color,
-                ),
-                onPressed: onToggleObscure,
-              )
-            : null,
-        hintText: hintText,
-        hintStyle: TextStyle(
-          color: Coloris.secondary_color,
-          fontWeight: FontWeight.w400,
+  Widget _buildFormFields() {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _buildInputField(
+                controller: _firstNameController,
+                label: "First Name",
+                hint: "Enter your first name",
+              ),
+            ),
+            SizedBox(width: 15.w),
+            Expanded(
+              child: _buildInputField(
+                controller: _lastNameController,
+                label: "Last Name",
+                hint: "Enter your last name",
+              ),
+            ),
+          ],
         ),
-        labelText: labelText,
-        labelStyle: TextStyle(
-          fontSize: 20.sp,
-          color: Coloris.text_color,
+        SizedBox(height: 15.h),
+        _buildInputField(
+          controller: _phoneController,
+          label: "Phone No.",
+          hint: "018XXXXXXXX",
+          prefixIcon: Icons.phone,
         ),
-        enabledBorder: OutlineInputBorder(
-          borderSide: BorderSide(
-            color: Colors.grey.shade600,
-            width: 1.0.w,
+        SizedBox(height: 15.h),
+        Row(
+          children: [
+            Expanded(
+              child: _buildInputField(
+                controller: _rollNumberController,
+                label: "Roll No.",
+                hint: "10",
+              ),
+            ),
+            SizedBox(width: 15.w),
+            Expanded(
+              child: _buildInputField(
+                controller: _batchNumberController,
+                label: "Batch No.",
+                hint: "D-78(A)",
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 15.h),
+        _buildInputField(
+          controller: _registrationNumberController,
+          label: "Registration No.",
+          hint: "CS-D-78-22-120***",
+          prefixIcon: Icons.format_align_center_rounded,
+        ),
+        SizedBox(height: 15.h),
+        _buildInputField(
+          controller: _departmentController,
+          label: "Dept. Name.",
+          hint: "CSE",
+        ),
+        SizedBox(height: 15.h),
+        _buildInputField(
+          controller: _semesterController,
+          label: "Semester No.",
+          hint: "5",
+        ),
+        SizedBox(height: 15.h),
+        _buildInputField(
+          controller: _emailController,
+          label: "Email",
+          hint: "Enter Your Email",
+          prefixIcon: Icons.email_rounded,
+        ),
+        SizedBox(height: 15.h),
+        _buildInputField(
+          controller: _passwordController,
+          label: "Password",
+          hint: "Enter Your Password",
+          prefixIcon: Icons.lock_rounded,
+          isPassword: true,
+        ),
+        SizedBox(height: 15.h),
+        _buildInputField(
+          controller: _confirmPasswordController,
+          label: "Confirm Password",
+          hint: "Confirm Password",
+          prefixIcon: Icons.lock_rounded,
+          isPassword: true,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInputField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    IconData? prefixIcon,
+    bool isPassword = false,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            color: Coloris.text_color,
+            fontSize: 16.sp,
+            fontWeight: FontWeight.w500,
           ),
-          borderRadius: BorderRadius.circular(10),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderSide: BorderSide(
-            color: Colors.blue,
-            width: 1.5.w,
+        SizedBox(height: 8.h),
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: Coloris.text_color.withOpacity(0.2)),
+            borderRadius: BorderRadius.circular(10),
           ),
-          borderRadius: BorderRadius.circular(10),
+          child: TextField(
+            controller: controller,
+            obscureText: isPassword && _obscurePassword,
+            decoration: InputDecoration(
+              prefixIcon: prefixIcon != null
+                  ? Icon(prefixIcon, color: Color(0xff6686F6))
+                  : null,
+              hintText: hint,
+              hintStyle: TextStyle(
+                color: Coloris.text_color.withOpacity(0.5),
+                fontSize: 14.sp,
+              ),
+              contentPadding:
+                  EdgeInsets.symmetric(horizontal: 15.w, vertical: 12.h),
+              border: InputBorder.none,
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: Colors.transparent),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: Color(0xff6686F6), width: 1),
+              ),
+              filled: true,
+              fillColor: Coloris.white,
+            ),
+          ),
         ),
-      ),
+      ],
     );
   }
 }

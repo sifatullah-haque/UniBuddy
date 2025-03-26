@@ -4,271 +4,392 @@ import 'package:diu/pages/home_page/Join_Club/join_club_success.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-class JoinClub extends StatelessWidget {
+class JoinClub extends StatefulWidget {
   const JoinClub({Key? key}) : super(key: key);
+
+  @override
+  State<JoinClub> createState() => _JoinClubState();
+}
+
+class _JoinClubState extends State<JoinClub> {
+  final _formKey = GlobalKey<FormState>();
+  String? selectedClub;
+  bool isDayShift = true;
+  bool isBiSemester = true;
+  String paymentMethod = 'bkash';
+
+  // Controllers for form fields
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _batchController = TextEditingController();
+  final _rollController = TextEditingController();
+  final _registrationController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _transactionController = TextEditingController();
+  final _fbProfileController = TextEditingController();
+  final _interestedInController = TextEditingController();
+  final _expertInController = TextEditingController();
+
+  // Dummy list of clubs - Replace with Firebase data later
+  final List<String> clubs = [
+    'DIU Computer Programming Club',
+    'DIU Career Development Club',
+    'DIU Film & Photography Club',
+    'DIU Sports Club',
+  ];
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _batchController.dispose();
+    _rollController.dispose();
+    _registrationController.dispose();
+    _phoneController.dispose();
+    _transactionController.dispose();
+    _fbProfileController.dispose();
+    _interestedInController.dispose();
+    _expertInController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Coloris.backgroundColor,
-      appBar: AppBar(
-        elevation: 0,
-        foregroundColor: Coloris.backgroundColor,
-        backgroundColor: Coloris.backgroundColor,
-        surfaceTintColor: Coloris.backgroundColor,
-        title: Text(
-          "Join Cub",
-          style: TextStyle(
-            fontSize: 30.sp,
-            fontWeight: FontWeight.w500,
-            color: Coloris.text_color,
+      body: Column(
+        children: [
+          _buildHeader(),
+          Expanded(
+            child: _buildForm(),
           ),
-        ),
-        centerTitle: true,
-      ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const InputField(
-                  titleText: "Select Club:",
-                  fieldText: "Select a club from the list"),
-              const InputField(
-                titleText: "Full Name: ",
-                fieldText: "Ex: Sifatullah Haque",
-              ),
-              const InputField(
-                titleText: "Email address: ",
-                fieldText: "Ex: yourname@gmail.com",
-              ),
-              Row(
-                children: [
-                  const Expanded(
-                    child: InputField(
-                      titleText: "Batch: ",
-                      fieldText: "Ex: D-78",
-                    ),
-                  ),
-                  SizedBox(width: 10.w),
-                  const Expanded(
-                    child: InputField(
-                      titleText: "Roll: ",
-                      fieldText: "Ex: 10",
-                    ),
-                  ),
-                ],
-              ),
-              const InputField(
-                  titleText: "Registration No.",
-                  fieldText: "Ex: CS-D-78-22-****"),
-              const RadioButton(
-                radioTitle: "Semester Type:",
-                firstOption: "Bi-Semester",
-                secondOption: "Tri-Semester",
-                value2: 1,
-              ),
-              const RadioButton(
-                radioTitle: "Your Shift:",
-                firstOption: "Day Shift",
-                secondOption: "Evening Shift",
-                value1: 1,
-              ),
-              const InputField(
-                titleText: "Phone No:",
-                fieldText: "018********",
-              ),
-              const RadioButton(
-                  radioTitle: "Payment Type (Send Money)",
-                  firstOption: "Bkash",
-                  secondOption: "Nagad"),
-              Text(
-                "Bkash/Nagad Number for Payment 018********",
-                style: TextStyle(
-                    color: Colors.red,
-                    fontWeight: FontWeight.w500,
-                    fontSize: 18.sp),
-              ),
-              SizedBox(height: 10.h),
-              const InputField(
-                  titleText: "Transaction Id:", fieldText: "Ex: BBH31HXB5L"),
-              const InputField(
-                  titleText: "Fb Profile Link:",
-                  fieldText: "Ex:  www.facebook.com/user.name"),
-              const InputField(
-                  titleText: "Interested In:",
-                  fieldText: "Ex:  Programming, Networking"),
-              const InputField(
-                  titleText: "Expert In:",
-                  fieldText: "ex:  Photography, Development"),
-              Center(
-                child: Padding(
-                  padding: EdgeInsets.only(bottom: 20.h), // Adjust padding
-                  child: const Common_Button(
-                    text: "Submit",
-                    destination: JoinClubSuccess(),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage("assets/svg/button_svg.png"),
-            fit: BoxFit.cover,
-          ),
-        ),
-        height: 120.h, // Adjust the height as needed
+        ],
       ),
     );
   }
-}
 
-class RadioButton extends StatelessWidget {
-  final String radioTitle;
-  final String firstOption;
-  final String secondOption;
-  final int? value1;
-  final int? value2;
-  const RadioButton({
-    super.key,
-    required this.radioTitle,
-    required this.firstOption,
-    required this.secondOption,
-    this.value1,
-    this.value2,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 5.0),
-          child: Text(radioTitle),
+  Widget _buildHeader() {
+    return Container(
+      height: 120.h,
+      decoration: const BoxDecoration(
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(30.0),
+          bottomRight: Radius.circular(30.0),
         ),
-        Row(
+        gradient: LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [Color(0xff6686F6), Color(0xff60BBEF)],
+        ),
+      ),
+      child: SafeArea(
+        child: Center(
+          child: Text(
+            "Join Club",
+            style: TextStyle(
+              fontSize: 25.sp,
+              fontWeight: FontWeight.w600,
+              color: Coloris.white,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildForm() {
+    return Form(
+      key: _formKey,
+      child: SingleChildScrollView(
+        padding: EdgeInsets.all(20.w),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            _buildDropdownField(),
+            _buildInputField(
+                _nameController, "Full Name", "Enter your full name"),
+            _buildInputField(_emailController, "Email", "Enter your email",
+                keyboardType: TextInputType.emailAddress),
             Row(
               children: [
-                Radio(
-                  value: value1,
-                  groupValue: 1,
-                  onChanged: (value) {},
+                Expanded(
+                  child: _buildInputField(_batchController, "Batch", "Ex: D-78",
+                      isHalfWidth: true),
                 ),
-                SizedBox(
-                  width: 5.w,
+                SizedBox(width: 10.w),
+                Expanded(
+                  child: _buildInputField(_rollController, "Roll", "Ex: 10",
+                      isHalfWidth: true),
                 ),
-                Text(firstOption),
               ],
             ),
-            SizedBox(
-              width: 10.w,
-            ),
+            _buildInputField(_registrationController, "Registration No.",
+                "Ex: CS-D-78-22-****"),
             Row(
               children: [
-                Radio(
-                  value: value2,
-                  groupValue: 1,
-                  onChanged: (value) {},
-                ),
-                SizedBox(
-                  width: 5.w,
-                ),
-                Text(secondOption),
+                _buildSwitchField("Semester Type", isBiSemester, (value) {
+                  setState(() => isBiSemester = value);
+                }, "Bi-Semester", "Tri-Semester"),
+                SizedBox(width: 20.w),
+                _buildSwitchField("Shift", isDayShift, (value) {
+                  setState(() => isDayShift = value);
+                }, "Day", "Evening"),
               ],
-            )
+            ),
+            _buildInputField(_phoneController, "Phone Number", "01X-XXXXXXXX",
+                keyboardType: TextInputType.phone),
+            _buildPaymentSection(),
+            _buildInputField(_transactionController, "Transaction ID",
+                "Enter transaction ID"),
+            _buildInputField(_fbProfileController, "Facebook Profile",
+                "Your Facebook profile link"),
+            _buildInputField(
+                _interestedInController, "Interested In", "Your interests"),
+            _buildInputField(
+                _expertInController, "Expert In", "Your expertise"),
+            SizedBox(height: 20.h),
+            Center(
+              child: GestureDetector(
+                onTap: _submitForm,
+                child: Container(
+                  width: 250.w,
+                  height: 45.h,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: [Color(0xff6686F6), Color(0xff60BBEF)],
+                    ),
+                    borderRadius: BorderRadius.circular(25),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xff6686F6).withOpacity(0.3),
+                        spreadRadius: 1,
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: Text(
+                      "Submit Application",
+                      style: TextStyle(
+                        color: Coloris.white,
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(height: 20.h),
           ],
         ),
-        SizedBox(
-          height: 10.h,
-        )
-      ],
+      ),
     );
   }
-}
 
-class InputField extends StatelessWidget {
-  final String fieldText;
-  final String titleText;
-  final int? maxLines;
-  final bool hasDropDownIcon;
-
-  const InputField({
-    Key? key,
-    required this.titleText,
-    required this.fieldText,
-    this.maxLines,
-    this.hasDropDownIcon = false,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildDropdownField() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 5.0),
-          child: Text(
-            titleText,
-            style: const TextStyle(
-              color: Coloris.text_color,
-            ),
+        Text(
+          "Select Club",
+          style: TextStyle(
+            color: Coloris.text_color,
+            fontSize: 16.sp,
+            fontWeight: FontWeight.w500,
           ),
         ),
-        const SizedBox(height: 5.0),
+        SizedBox(height: 8.h),
         Container(
           decoration: BoxDecoration(
-            border: Border.all(
-              color: Coloris.text_color,
-              width: 0.5,
-            ),
+            border: Border.all(color: Coloris.text_color.withOpacity(0.2)),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  decoration: InputDecoration(
-                    border: InputBorder.none,
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: const BorderSide(
-                        color: Coloris.text_color,
-                        width: 0.5,
-                      ),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: const BorderSide(
-                        color: Coloris.primary_color,
-                        width: 1.0,
-                      ),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    hintText: fieldText,
-                    contentPadding: const EdgeInsets.only(
-                        left: 10.0, top: 10.0, right: 10.0, bottom: 10.0),
-                    hintStyle: const TextStyle(
-                      color: Coloris.secondary_color,
-                      fontWeight: FontWeight.w300,
-                    ),
-                  ),
-                  maxLines: maxLines,
-                ),
+          child: DropdownButtonFormField<String>(
+            value: selectedClub,
+            decoration: InputDecoration(
+              border: InputBorder.none,
+              contentPadding:
+                  EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: Colors.transparent),
               ),
-              if (hasDropDownIcon)
-                const Icon(Icons.arrow_drop_down,
-                    color: Coloris.secondary_color),
-            ],
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: Color(0xff6686F6), width: 1),
+              ),
+            ),
+            hint: Text("Select a club"),
+            items: clubs.map((String club) {
+              return DropdownMenuItem(
+                value: club,
+                child: Text(club),
+              );
+            }).toList(),
+            onChanged: (String? value) {
+              setState(() => selectedClub = value);
+            },
+            validator: (value) => value == null ? 'Please select a club' : null,
           ),
         ),
-        SizedBox(height: 10.h),
+        SizedBox(height: 15.h),
       ],
     );
+  }
+
+  Widget _buildInputField(
+    TextEditingController controller,
+    String label,
+    String hint, {
+    bool isHalfWidth = false,
+    TextInputType? keyboardType,
+  }) {
+    return Container(
+      margin: EdgeInsets.only(bottom: 15.h),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: Coloris.text_color,
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          SizedBox(height: 8.h),
+          Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: Coloris.text_color.withOpacity(0.2)),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: TextFormField(
+              controller: controller,
+              keyboardType: keyboardType,
+              decoration: InputDecoration(
+                hintText: hint,
+                hintStyle: TextStyle(
+                  color: Coloris.text_color.withOpacity(0.5),
+                  fontSize: 14.sp,
+                ),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 15.w, vertical: 12.h),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: Colors.transparent),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: Colors.transparent),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: Color(0xff6686F6), width: 1),
+                ),
+                filled: true,
+                fillColor: Coloris.white,
+              ),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'This field is required';
+                }
+                return null;
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSwitchField(String label, bool value, Function(bool) onChanged,
+      String trueLabel, String falseLabel) {
+    return Container(
+      margin: EdgeInsets.only(bottom: 15.h),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: Coloris.text_color,
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          Row(
+            children: [
+              Switch(
+                value: value,
+                onChanged: onChanged,
+                activeColor: Color(0xff6686F6),
+              ),
+              Text(value ? trueLabel : falseLabel),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentSection() {
+    return Container(
+      margin: EdgeInsets.only(bottom: 15.h),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Payment Method",
+            style: TextStyle(
+              color: Coloris.text_color,
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          Row(
+            children: [
+              Radio(
+                value: 'bkash',
+                groupValue: paymentMethod,
+                onChanged: (value) {
+                  setState(() => paymentMethod = value.toString());
+                },
+              ),
+              Text('Bkash'),
+              Radio(
+                value: 'nagad',
+                groupValue: paymentMethod,
+                onChanged: (value) {
+                  setState(() => paymentMethod = value.toString());
+                },
+              ),
+              Text('Nagad'),
+            ],
+          ),
+          Text(
+            "Payment Number: 01XXXXXXXXX",
+            style: TextStyle(
+              color: Colors.red,
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _submitForm() {
+    if (_formKey.currentState!.validate()) {
+      // TODO: Implement Firebase submission
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => JoinClubSuccess()),
+      );
+    }
   }
 }

@@ -1,9 +1,79 @@
 import 'package:diu/Constant/color_is.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:diu/models/emergency_alert.dart';
 
-class Emergency extends StatelessWidget {
+class Emergency extends StatefulWidget {
   const Emergency({super.key});
+
+  @override
+  _EmergencyState createState() => _EmergencyState();
+}
+
+class _EmergencyState extends State<Emergency> {
+  final _titleController = TextEditingController();
+  final _descriptionController = TextEditingController();
+  final _locationController = TextEditingController();
+  bool _isLoading = false;
+
+  Future<void> _createAlert() async {
+    if (!mounted) return;
+
+    if (_titleController.text.isEmpty ||
+        _descriptionController.text.isEmpty ||
+        _locationController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill all fields')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) throw Exception('User not logged in');
+
+      final alert = EmergencyAlert(
+        id: '',
+        title: _titleController.text,
+        description: _descriptionController.text,
+        location: _locationController.text,
+        timestamp: DateTime.now(),
+        userId: user.uid,
+      );
+
+      await FirebaseFirestore.instance
+          .collection('emergencyAlerts')
+          .add(alert.toMap());
+
+      if (!mounted) return;
+
+      // Clear the text fields
+      _titleController.clear();
+      _descriptionController.clear();
+      _locationController.clear();
+
+      // Close the dialog first
+      Navigator.of(context).pop();
+
+      // Show success message after dialog is closed
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Emergency alert created successfully')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error creating alert: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -82,16 +152,35 @@ class Emergency extends StatelessWidget {
   }
 
   Widget _buildAlertList() {
-    return ListView.builder(
-      padding: EdgeInsets.symmetric(horizontal: 20.w),
-      itemCount: 5, // Replace with actual data
-      itemBuilder: (context, index) {
-        return _buildAlertCard();
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('emergencyAlerts')
+          .orderBy('timestamp', descending: true)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
+
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final alerts = snapshot.data!.docs
+            .map((doc) => EmergencyAlert.fromMap(
+                doc.id, doc.data() as Map<String, dynamic>))
+            .toList();
+
+        return ListView.builder(
+          padding: EdgeInsets.symmetric(horizontal: 20.w),
+          itemCount: alerts.length,
+          itemBuilder: (context, index) => _buildAlertCard(alerts[index]),
+        );
       },
     );
   }
 
-  Widget _buildAlertCard() {
+  Widget _buildAlertCard(EmergencyAlert alert) {
     return Container(
       margin: EdgeInsets.only(bottom: 15.h),
       padding: EdgeInsets.all(15.w),
@@ -115,7 +204,7 @@ class Emergency extends StatelessWidget {
               Icon(Icons.emergency, color: Coloris.primary_color, size: 24.sp),
               SizedBox(width: 10.w),
               Text(
-                "Emergency Alert",
+                alert.title,
                 style: TextStyle(
                   fontSize: 18.sp,
                   fontWeight: FontWeight.w600,
@@ -126,16 +215,7 @@ class Emergency extends StatelessWidget {
           ),
           SizedBox(height: 10.h),
           Text(
-            "Medical Emergency in Room 405",
-            style: TextStyle(
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w600,
-              color: Coloris.text_color,
-            ),
-          ),
-          SizedBox(height: 5.h),
-          Text(
-            "Need immediate medical assistance. Student feeling severe chest pain.",
+            alert.description,
             style: TextStyle(
               fontSize: 14.sp,
               color: Coloris.text_color.withOpacity(0.7),
@@ -146,14 +226,14 @@ class Emergency extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                "Location: Academic Building 2",
+                "Location: ${alert.location}",
                 style: TextStyle(
                   fontSize: 14.sp,
                   color: Coloris.text_color,
                 ),
               ),
               Text(
-                "2 mins ago",
+                _getTimeAgo(alert.timestamp),
                 style: TextStyle(
                   fontSize: 12.sp,
                   color: Coloris.text_color.withOpacity(0.5),
@@ -164,6 +244,17 @@ class Emergency extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _getTimeAgo(DateTime dateTime) {
+    final difference = DateTime.now().difference(dateTime);
+    if (difference.inMinutes < 60) {
+      return '${difference.inMinutes} mins ago';
+    } else if (difference.inHours < 24) {
+      return '${difference.inHours} hours ago';
+    } else {
+      return '${difference.inDays} days ago';
+    }
   }
 
   void _showCreateAlertDialog(BuildContext context) {
@@ -182,6 +273,7 @@ class Emergency extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
+              controller: _titleController,
               decoration: InputDecoration(
                 labelText: "Title",
                 border: OutlineInputBorder(
@@ -191,6 +283,7 @@ class Emergency extends StatelessWidget {
             ),
             SizedBox(height: 15.h),
             TextField(
+              controller: _descriptionController,
               maxLines: 3,
               decoration: InputDecoration(
                 labelText: "Description",
@@ -201,6 +294,7 @@ class Emergency extends StatelessWidget {
             ),
             SizedBox(height: 15.h),
             TextField(
+              controller: _locationController,
               decoration: InputDecoration(
                 labelText: "Location",
                 border: OutlineInputBorder(
@@ -213,20 +307,17 @@ class Emergency extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(
-              "Cancel",
-              style: TextStyle(color: Colors.grey),
-            ),
+            child: Text("Cancel", style: TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: _isLoading ? null : _createAlert,
             style: ElevatedButton.styleFrom(
-              backgroundColor: Coloris.primary_color, // Changed from primary
+              backgroundColor: Coloris.primary_color,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
-            child: Text("Create Alert"),
+            child: Text(_isLoading ? "Creating..." : "Create Alert"),
           ),
         ],
       ),

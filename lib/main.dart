@@ -12,14 +12,23 @@ import 'package:diu/pages/home_page/pure_home_page/home_page.dart';
 import 'package:diu/pages/main_navigation.dart';
 import 'package:diu/pages/notifications/notifications.dart';
 import 'package:diu/utils/firebase_project_config.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  checkFirebaseConfig(); // Add this line to check Firebase config
+
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    print('Firebase initialized successfully');
+  } catch (e) {
+    print('Firebase initialization error: $e');
+  }
+
   runApp(const MyApp());
 }
 

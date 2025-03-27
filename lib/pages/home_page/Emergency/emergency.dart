@@ -53,12 +53,21 @@ class _EmergencyState extends State<Emergency> {
         userEmail: user.email ?? 'Unknown',
       );
 
-      await FirebaseFirestore.instance
+      // Add to Firestore
+      DocumentReference docRef = await FirebaseFirestore.instance
           .collection('emergencyAlerts')
           .add(alert.toMap())
           .timeout(const Duration(seconds: 10),
               onTimeout: () =>
                   throw Exception('Connection timeout. Please try again.'));
+
+      // Send notifications to all users
+      await _sendNotificationToAllUsers(
+        title: 'EMERGENCY ALERT',
+        message: '${_titleController.text} at ${_locationController.text}',
+        type: 'emergency',
+        relatedItemId: docRef.id,
+      );
 
       if (!mounted) return;
 
@@ -96,21 +105,70 @@ class _EmergencyState extends State<Emergency> {
     }
   }
 
+  // Add this new method to send notifications to all users
+  Future<void> _sendNotificationToAllUsers({
+    required String title,
+    required String message,
+    required String type,
+    required String relatedItemId,
+  }) async {
+    try {
+      // Get all users
+      final usersSnapshot =
+          await FirebaseFirestore.instance.collection('users').get();
+
+      // Create batch to handle multiple writes efficiently
+      final batch = FirebaseFirestore.instance.batch();
+
+      // Create a notification for each user
+      for (var userDoc in usersSnapshot.docs) {
+        final notificationRef =
+            FirebaseFirestore.instance.collection('notifications').doc();
+        batch.set(notificationRef, {
+          'userId': userDoc.id,
+          'title': title,
+          'message': message,
+          'timestamp': FieldValue.serverTimestamp(),
+          'isRead': false,
+          'type': type,
+          'relatedItemId': relatedItemId,
+        });
+      }
+
+      // Commit the batch
+      await batch.commit();
+      print('Notifications sent to all users successfully');
+    } catch (e) {
+      print('Error sending notifications: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Coloris.backgroundColor,
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showCreateAlertDialog(context),
-        label: Text(
-          'Create Emergency Alert',
-          style: TextStyle(
-            color: Coloris.white,
-            fontSize: 14.sp,
+      floatingActionButton: Container(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+            colors: [Color(0xff6686F6), Color(0xff60BBEF)],
           ),
+          borderRadius: BorderRadius.circular(30),
         ),
-        icon: Icon(Icons.add_alert, color: Coloris.white),
-        backgroundColor: Color(0xff6686F6),
+        child: FloatingActionButton.extended(
+          onPressed: () => _showCreateAlertDialog(context),
+          label: Text(
+            'Create Emergency Alert',
+            style: TextStyle(
+              color: Coloris.white,
+              fontSize: 14.sp,
+            ),
+          ),
+          icon: Icon(Icons.add_alert, color: Coloris.white),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+        ),
       ),
       body: Column(
         children: [

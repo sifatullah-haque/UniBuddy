@@ -1,0 +1,71 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Basic user authentication check
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Check if user owns the document
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Admin check function
+    function isAdmin() {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // Lost Items collection rules
+    match /lostItems/{itemId} {
+      allow read: if true;
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated();
+      allow delete: if isOwner(resource.data.userId);
+    }
+
+    // Notifications collection rules
+    match /notifications/{notificationId} {
+      allow read: if isOwner(resource.data.userId);
+      allow create: if isAuthenticated();
+      allow update: if isOwner(resource.data.userId);
+      allow delete: if isOwner(resource.data.userId);
+    }
+
+    // Users collection rules
+    match /users/{userId} {
+      allow read: if true;
+      // Allow create if the user ID matches the authenticated user
+      allow create: if request.auth != null && request.auth.uid == userId;
+      // Allow updates only by document owner
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
+    }
+
+    // JoinClub collection rules
+    match /JoinClub/{applicationId} {
+      allow read: if true;
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && isOwner(resource.data.userId);
+      allow delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
+    // Emergency alerts collection rules
+    match /emergencyAlerts/{alertId} {
+      // Anyone can read emergency alerts
+      allow read: if true;
+      // Only authenticated users can create alerts
+      allow create: if isAuthenticated();
+      // Only owner can update their own alerts
+      allow update: if isOwner(resource.data.userId);
+      // Admin or owner can delete
+      allow delete: if isOwner(resource.data.userId) || isAdmin();
+    }
+
+    // Counter rules for user ID generation
+    match /counters/{counterId} {
+      allow read, write: if true;
+    }
+  }
+}

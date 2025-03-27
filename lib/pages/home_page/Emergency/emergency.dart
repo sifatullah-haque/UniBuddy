@@ -1,5 +1,6 @@
 import 'package:diu/Constant/color_is.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // Add this import for clipboard functionality
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -16,6 +17,7 @@ class _EmergencyState extends State<Emergency> {
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _locationController = TextEditingController();
+  final _contactController = TextEditingController(); // Add contact controller
   bool _isLoading = false;
 
   Future<void> _createAlert() async {
@@ -23,7 +25,9 @@ class _EmergencyState extends State<Emergency> {
 
     if (_titleController.text.isEmpty ||
         _descriptionController.text.isEmpty ||
-        _locationController.text.isEmpty) {
+        _locationController.text.isEmpty ||
+        _contactController.text.isEmpty) {
+      // Add validation for contact
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill all fields')),
       );
@@ -34,20 +38,27 @@ class _EmergencyState extends State<Emergency> {
 
     try {
       final user = FirebaseAuth.instance.currentUser;
-      if (user == null) throw Exception('User not logged in');
+      if (user == null) {
+        throw Exception('User not logged in');
+      }
 
       final alert = EmergencyAlert(
         id: '',
         title: _titleController.text,
         description: _descriptionController.text,
         location: _locationController.text,
+        contact: _contactController.text, // Add contact to the model
         timestamp: DateTime.now(),
         userId: user.uid,
+        userEmail: user.email ?? 'Unknown',
       );
 
       await FirebaseFirestore.instance
           .collection('emergencyAlerts')
-          .add(alert.toMap());
+          .add(alert.toMap())
+          .timeout(const Duration(seconds: 10),
+              onTimeout: () =>
+                  throw Exception('Connection timeout. Please try again.'));
 
       if (!mounted) return;
 
@@ -55,6 +66,7 @@ class _EmergencyState extends State<Emergency> {
       _titleController.clear();
       _descriptionController.clear();
       _locationController.clear();
+      _contactController.clear(); // Clear contact field
 
       // Close the dialog first
       Navigator.of(context).pop();
@@ -65,8 +77,17 @@ class _EmergencyState extends State<Emergency> {
       );
     } catch (e) {
       if (!mounted) return;
+
+      String errorMessage = 'Error creating alert';
+      if (e.toString().contains('permission-denied')) {
+        errorMessage =
+            'Permission denied. Please check your account permissions.';
+      } else {
+        errorMessage = 'Error: ${e.toString()}';
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error creating alert: $e')),
+        SnackBar(content: Text(errorMessage)),
       );
     } finally {
       if (mounted) {
@@ -79,10 +100,22 @@ class _EmergencyState extends State<Emergency> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Coloris.backgroundColor,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showCreateAlertDialog(context),
+        label: Text(
+          'Create Emergency Alert',
+          style: TextStyle(
+            color: Coloris.white,
+            fontSize: 14.sp,
+          ),
+        ),
+        icon: Icon(Icons.add_alert, color: Coloris.white),
+        backgroundColor: Color(0xff6686F6),
+      ),
       body: Column(
         children: [
           _buildHeader(),
-          _buildCreateAlertButton(context),
+          SizedBox(height: 20.h),
           Expanded(
             child: _buildAlertList(),
           ),
@@ -115,37 +148,6 @@ class _EmergencyState extends State<Emergency> {
               color: Coloris.white,
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCreateAlertButton(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.all(20.w),
-      child: ElevatedButton(
-        onPressed: () => _showCreateAlertDialog(context),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Coloris.primary_color, // Changed from primary
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15),
-          ),
-          padding: EdgeInsets.symmetric(vertical: 15.h),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.add_alert, color: Coloris.white, size: 24.sp),
-            SizedBox(width: 10.w),
-            Text(
-              "Create Emergency Alert",
-              style: TextStyle(
-                fontSize: 16.sp,
-                color: Coloris.white,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
         ),
       ),
     );
@@ -223,6 +225,35 @@ class _EmergencyState extends State<Emergency> {
           ),
           SizedBox(height: 10.h),
           Row(
+            children: [
+              Expanded(
+                child: Text(
+                  "Contact: ${alert.contact}",
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    color: Coloris.text_color,
+                  ),
+                ),
+              ),
+              InkWell(
+                onTap: () => _copyToClipboard(alert.contact),
+                child: Container(
+                  padding: EdgeInsets.all(5.w),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(5),
+                  ),
+                  child: Icon(
+                    Icons.copy,
+                    color: Coloris.primary_color,
+                    size: 18.sp,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 5.h),
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
@@ -244,6 +275,19 @@ class _EmergencyState extends State<Emergency> {
         ],
       ),
     );
+  }
+
+  // Add this new method to handle copying to clipboard
+  void _copyToClipboard(String text) {
+    Clipboard.setData(ClipboardData(text: text)).then((_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Contact number copied to clipboard"),
+          backgroundColor: Coloris.primary_color,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    });
   }
 
   String _getTimeAgo(DateTime dateTime) {
@@ -269,55 +313,74 @@ class _EmergencyState extends State<Emergency> {
             color: Coloris.text_color,
           ),
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _titleController,
-              decoration: InputDecoration(
-                labelText: "Title",
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _titleController,
+                decoration: InputDecoration(
+                  labelText: "Title",
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
               ),
-            ),
-            SizedBox(height: 15.h),
-            TextField(
-              controller: _descriptionController,
-              maxLines: 3,
-              decoration: InputDecoration(
-                labelText: "Description",
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
+              SizedBox(height: 15.h),
+              TextField(
+                controller: _contactController, // Add contact field
+                decoration: InputDecoration(
+                  labelText: "Contact Number",
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                keyboardType:
+                    TextInputType.phone, // Set keyboard type for phone
+              ),
+              SizedBox(height: 15.h),
+              TextField(
+                controller: _locationController,
+                decoration: InputDecoration(
+                  labelText: "Location",
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
               ),
-            ),
-            SizedBox(height: 15.h),
-            TextField(
-              controller: _locationController,
-              decoration: InputDecoration(
-                labelText: "Location",
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
+              SizedBox(height: 15.h),
+              TextField(
+                controller: _descriptionController,
+                maxLines: 3,
+                decoration: InputDecoration(
+                  labelText: "Description",
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text("Cancel", style: TextStyle(color: Colors.grey)),
           ),
-          ElevatedButton(
-            onPressed: _isLoading ? null : _createAlert,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Coloris.primary_color,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+          Container(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xff6686F6), Color(0xff60BBEF)],
+              ),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: TextButton(
+              onPressed: _isLoading ? null : _createAlert,
+              child: Text(
+                _isLoading ? "Creating..." : "Create Alert",
+                style: TextStyle(color: Colors.white),
               ),
             ),
-            child: Text(_isLoading ? "Creating..." : "Create Alert"),
           ),
         ],
       ),

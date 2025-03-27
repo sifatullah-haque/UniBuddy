@@ -82,6 +82,9 @@ class _RegisterFormState extends State<RegisterForm> {
   final _semesterController = TextEditingController();
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  // Add new state variables for semester type and shift
+  bool _isBiSemester = true;
+  bool _isDayShift = true;
 
   @override
   void dispose() {
@@ -218,9 +221,12 @@ class _RegisterFormState extends State<RegisterForm> {
                   'phoneNo': _phoneController.text.trim(),
                   'rollNo': _rollNumberController.text.trim(),
                   'batchNo': _batchNumberController.text.trim(),
-                  'registrationNo': _registrationNumberController.text.trim(),
-                  'deptName': _departmentController.text.trim(),
+                  'registrationNo':
+                      _registrationNumberController.text.trim().toUpperCase(),
+                  'deptName': _departmentController.text.trim().toUpperCase(),
                   'semesterNo': _semesterController.text.trim(),
+                  'isBiSemester': _isBiSemester,
+                  'isDayShift': _isDayShift,
                   'email': _emailController.text.trim(),
                   'isEmailVerified': false,
                   'profilePicture': null,
@@ -310,6 +316,7 @@ class _RegisterFormState extends State<RegisterForm> {
           label: "Phone No.",
           hint: "018XXXXXXXX",
           prefixIcon: Icons.phone,
+          keyboardType: TextInputType.number,
         ),
         SizedBox(height: 15.h),
         Row(
@@ -319,6 +326,7 @@ class _RegisterFormState extends State<RegisterForm> {
                 controller: _rollNumberController,
                 label: "Roll No.",
                 hint: "10",
+                keyboardType: TextInputType.number,
               ),
             ),
             SizedBox(width: 15.w),
@@ -349,6 +357,32 @@ class _RegisterFormState extends State<RegisterForm> {
           controller: _semesterController,
           label: "Semester No.",
           hint: "5",
+          keyboardType: TextInputType.number,
+        ),
+        SizedBox(height: 15.h),
+        // Add toggle switches for semester type and shift
+        Row(
+          children: [
+            _buildSwitchField(
+              label: "Semester Type",
+              value: _isBiSemester,
+              onChanged: (value) {
+                setState(() => _isBiSemester = value);
+              },
+              trueLabel: "Bi-Semester",
+              falseLabel: "Tri-Semester",
+            ),
+            SizedBox(width: 15.w),
+            _buildSwitchField(
+              label: "Shift",
+              value: _isDayShift,
+              onChanged: (value) {
+                setState(() => _isDayShift = value);
+              },
+              trueLabel: "Day",
+              falseLabel: "Evening",
+            ),
+          ],
         ),
         SizedBox(height: 15.h),
         _buildInputField(
@@ -377,12 +411,55 @@ class _RegisterFormState extends State<RegisterForm> {
     );
   }
 
+  // Add a new method for building switch fields
+  Widget _buildSwitchField({
+    required String label,
+    required bool value,
+    required Function(bool) onChanged,
+    required String trueLabel,
+    required String falseLabel,
+  }) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: Coloris.text_color,
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          SizedBox(height: 8.h),
+          Row(
+            children: [
+              Switch(
+                value: value,
+                onChanged: onChanged,
+                activeColor: Color(0xff6686F6),
+              ),
+              Text(
+                value ? trueLabel : falseLabel,
+                style: TextStyle(
+                  color: Coloris.text_color,
+                  fontSize: 14.sp,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildInputField({
     required TextEditingController controller,
     required String label,
     required String hint,
     IconData? prefixIcon,
     bool isPassword = false,
+    TextInputType? keyboardType,
   }) {
     // Determine which password visibility state to use
     bool isObscured = isPassword;
@@ -390,6 +467,13 @@ class _RegisterFormState extends State<RegisterForm> {
       isObscured = controller == _passwordController
           ? _obscurePassword
           : _obscureConfirmPassword;
+    }
+
+    // Add text transformation for registration number and department name
+    TextCapitalization capitalization = TextCapitalization.none;
+    if (controller == _registrationNumberController ||
+        controller == _departmentController) {
+      capitalization = TextCapitalization.characters;
     }
 
     return Column(
@@ -412,6 +496,20 @@ class _RegisterFormState extends State<RegisterForm> {
           child: TextFormField(
             controller: controller,
             obscureText: isPassword ? isObscured : false,
+            keyboardType: keyboardType,
+            textCapitalization: capitalization,
+            onChanged: (value) {
+              if (controller == _registrationNumberController ||
+                  controller == _departmentController) {
+                final text = value.toUpperCase();
+                if (text != value) {
+                  controller.value = controller.value.copyWith(
+                    text: text,
+                    selection: TextSelection.collapsed(offset: text.length),
+                  );
+                }
+              }
+            },
             decoration: InputDecoration(
               prefixIcon: prefixIcon != null
                   ? Icon(prefixIcon, color: Color(0xff6686F6))

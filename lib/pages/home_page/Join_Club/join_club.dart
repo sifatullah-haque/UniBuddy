@@ -248,6 +248,9 @@ class _JoinClubState extends State<JoinClub> {
     bool isHalfWidth = false,
     TextInputType? keyboardType,
   }) {
+    // Check if this field should be uppercase
+    bool isUppercaseField = (controller == _registrationController);
+
     return Container(
       margin: EdgeInsets.only(bottom: 15.h),
       child: Column(
@@ -270,6 +273,20 @@ class _JoinClubState extends State<JoinClub> {
             child: TextFormField(
               controller: controller,
               keyboardType: keyboardType,
+              textCapitalization: isUppercaseField
+                  ? TextCapitalization.characters
+                  : TextCapitalization.none,
+              onChanged: (value) {
+                if (isUppercaseField) {
+                  final text = value.toUpperCase();
+                  if (text != value) {
+                    controller.value = controller.value.copyWith(
+                      text: text,
+                      selection: TextSelection.collapsed(offset: text.length),
+                    );
+                  }
+                }
+              },
               decoration: InputDecoration(
                 hintText: hint,
                 hintStyle: TextStyle(
@@ -385,6 +402,12 @@ class _JoinClubState extends State<JoinClub> {
 
   void _submitForm() {
     if (_formKey.currentState!.validate()) {
+      // Convert registration number to uppercase
+      final registrationNo = _registrationController.text.trim().toUpperCase();
+
+      // Update the controller with uppercase value
+      _registrationController.text = registrationNo;
+
       // TODO: Implement Firebase submission
       Navigator.push(
         context,

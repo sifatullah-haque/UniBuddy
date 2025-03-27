@@ -1,224 +1,18 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:diu/Constant/color_is.dart';
 import 'package:diu/Constant/common_button.dart';
-import 'package:diu/auth/email_verification/email_verification_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-class RegisterPage extends StatefulWidget {
-  final VoidCallback showLoginPage;
-  RegisterPage({Key? key, required this.showLoginPage}) : super(key: key);
+// Convert to stateless widget
+class RegisterPage extends StatelessWidget {
+  final VoidCallback onRegistrationComplete;
 
-  @override
-  State<RegisterPage> createState() => _RegisterPageState();
-}
-
-class _RegisterPageState extends State<RegisterPage> {
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _firstNameController = TextEditingController();
-  final _lastNameController = TextEditingController();
-  final _phoneController = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
-  final _rollNumberController = TextEditingController();
-  final _departmentController = TextEditingController();
-  final _registrationNumberController = TextEditingController();
-  final _batchNumberController = TextEditingController();
-  final _semesterController = TextEditingController();
-  bool _isLoading = false;
-  bool _obscurePassword = true;
-  bool _obscureConfirmPassword = true;
-
-  Future<String> _generateUserId() async {
-    DocumentReference counterRef =
-        FirebaseFirestore.instance.collection('counters').doc('userId');
-
-    return FirebaseFirestore.instance
-        .runTransaction<String>((transaction) async {
-      DocumentSnapshot snapshot = await transaction.get(counterRef);
-
-      if (!snapshot.exists) {
-        transaction.set(counterRef, {'current': 0});
-        return 'DCMM-000001';
-      }
-
-      int currentNumber =
-          (snapshot.data() as Map<String, dynamic>)['current'] + 1;
-      transaction.update(counterRef, {'current': currentNumber});
-
-      return 'DCMM-' + currentNumber.toString().padLeft(6, '0');
-    });
-  }
-
-  Future register() async {
-    if (!_validateInputs()) {
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      // Ensure Firebase is initialized
-      try {
-        Firebase.app();
-      } catch (e) {
-        await Firebase.initializeApp();
-      }
-
-      // Create user first
-      final userCredential =
-          await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
-
-      if (userCredential.user == null) {
-        throw Exception('User creation failed');
-      }
-
-      // Generate unique user ID
-      String userId = await _generateUserId();
-
-      // Add user details to Firestore
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userCredential.user!.uid)
-          .set({
-        'userId': userId,
-        'firstName': _firstNameController.text.trim(),
-        'lastName': _lastNameController.text.trim(),
-        'phoneNo': _phoneController.text.trim(),
-        'rollNo': _rollNumberController.text.trim(),
-        'batchNo': _batchNumberController.text.trim(),
-        'registrationNo': _registrationNumberController.text.trim(),
-        'deptName': _departmentController.text.trim(),
-        'semesterNo': _semesterController.text.trim(),
-        'email': _emailController.text.trim(),
-        'isEmailVerified': false,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-
-      // Send email verification
-      await userCredential.user!.sendEmailVerification();
-
-      if (mounted) {
-        // Show success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content:
-                Text('Account created successfully! Please verify your email.'),
-            backgroundColor: Colors.green,
-          ),
-        );
-
-        // Navigate to verification page
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => EmailVerificationPage(
-              email: _emailController.text.trim(),
-            ),
-          ),
-        );
-      }
-    } on FirebaseAuthException catch (e) {
-      String errorMessage;
-      switch (e.code) {
-        case 'weak-password':
-          errorMessage = 'The password provided is too weak';
-          break;
-        case 'email-already-in-use':
-          errorMessage = 'An account already exists for this email';
-          break;
-        case 'invalid-email':
-          errorMessage = 'The email address is not valid';
-          break;
-        case 'operation-not-allowed':
-          errorMessage = 'Email/password accounts are not enabled';
-          break;
-        case 'network-request-failed':
-          errorMessage = 'Network error. Please check your internet connection';
-          break;
-        default:
-          errorMessage = e.message ?? 'An unknown error occurred';
-      }
-      _showError(errorMessage);
-      print('Firebase Auth Error: ${e.code} - $errorMessage'); // For debugging
-    } catch (e) {
-      print('Registration error details: $e'); // For debugging
-      _showError('Registration failed: ${e.toString()}');
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
-  bool _validateInputs() {
-    if (_emailController.text.trim().isEmpty) {
-      _showError('Please enter your email');
-      return false;
-    }
-
-    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-        .hasMatch(_emailController.text.trim())) {
-      _showError('Please enter a valid email address');
-      return false;
-    }
-
-    if (_passwordController.text.isEmpty) {
-      _showError('Please enter a password');
-      return false;
-    }
-
-    if (_passwordController.text.length < 6) {
-      _showError('Password must be at least 6 characters long');
-      return false;
-    }
-
-    if (_firstNameController.text.trim().isEmpty) {
-      _showError('Please enter your first name');
-      return false;
-    }
-
-    if (_lastNameController.text.trim().isEmpty) {
-      _showError('Please enter your last name');
-      return false;
-    }
-
-    if (!passConfirm()) {
-      _showError('Passwords do not match');
-      return false;
-    }
-
-    return true;
-  }
-
-  void _showError(String message) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
-  bool passConfirm() {
-    if (_passwordController.text.trim() ==
-        _confirmPasswordController.text.trim()) {
-      return true;
-    } else
-      return false;
-  }
+  const RegisterPage({Key? key, required this.onRegistrationComplete})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -254,84 +48,241 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
               ),
             ),
-            Padding(
-              padding: EdgeInsets.all(25.w),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Form fields with updated styling
-                  _buildFormFields(),
-                  SizedBox(height: 30.h),
-                  // Register Button
-                  GestureDetector(
-                    onTap: _isLoading ? null : register,
-                    child: Container(
-                      width: double.infinity,
-                      height: 45.h,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
-                          colors: [Color(0xff6686F6), Color(0xff60BBEF)],
-                        ),
-                        borderRadius: BorderRadius.circular(25),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xff6686F6).withOpacity(0.3),
-                            spreadRadius: 1,
-                            blurRadius: 8,
-                            offset: const Offset(0, 3),
-                          ),
-                        ],
-                      ),
-                      child: Center(
-                        child: Text(
-                          _isLoading ? "Creating Account..." : "Register",
-                          style: TextStyle(
-                            color: Coloris.white,
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 20.h),
-                  // Login link
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        "Already have an account?",
-                        style: TextStyle(
-                          color: Coloris.text_color.withOpacity(0.7),
-                          fontSize: 16.sp,
-                        ),
-                      ),
-                      SizedBox(width: 10.w),
-                      GestureDetector(
-                        onTap: widget.showLoginPage,
-                        child: Text(
-                          "Login",
-                          style: TextStyle(
-                            color: Color(0xff6686F6),
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+            // Extract the form to a separate stateful widget
+            RegisterForm(onRegistrationComplete: onRegistrationComplete),
           ],
         ),
       ),
     );
   }
+}
+
+// New stateful widget for the form
+class RegisterForm extends StatefulWidget {
+  final VoidCallback onRegistrationComplete;
+
+  const RegisterForm({Key? key, required this.onRegistrationComplete})
+      : super(key: key);
+
+  @override
+  _RegisterFormState createState() => _RegisterFormState();
+}
+
+class _RegisterFormState extends State<RegisterForm> {
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _firstNameController = TextEditingController();
+  final _lastNameController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+  final _rollNumberController = TextEditingController();
+  final _departmentController = TextEditingController();
+  final _registrationNumberController = TextEditingController();
+  final _batchNumberController = TextEditingController();
+  final _semesterController = TextEditingController();
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
+
+  @override
+  void dispose() {
+    // Clean up controllers
+    _emailController.dispose();
+    _passwordController.dispose();
+    _firstNameController.dispose();
+    _lastNameController.dispose();
+    _phoneController.dispose();
+    _confirmPasswordController.dispose();
+    _rollNumberController.dispose();
+    _departmentController.dispose();
+    _registrationNumberController.dispose();
+    _batchNumberController.dispose();
+    _semesterController.dispose();
+    super.dispose();
+  }
+
+  Future<String> _generateUserId() async {
+    DocumentReference counterRef =
+        FirebaseFirestore.instance.collection('counters').doc('userId');
+
+    return FirebaseFirestore.instance
+        .runTransaction<String>((transaction) async {
+      DocumentSnapshot snapshot = await transaction.get(counterRef);
+
+      if (!snapshot.exists) {
+        transaction.set(counterRef, {'current': 0});
+        return 'DCMM-000001';
+      }
+
+      int currentNumber =
+          (snapshot.data() as Map<String, dynamic>)['current'] + 1;
+      transaction.update(counterRef, {'current': currentNumber});
+
+      return 'DCMM-' + currentNumber.toString().padLeft(6, '0');
+    });
+  }
+
+  bool _validateInputs(BuildContext context) {
+    // ...existing validation code...
+    if (_emailController.text.trim().isEmpty) {
+      _showError(context, 'Please enter your email');
+      return false;
+    }
+
+    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+        .hasMatch(_emailController.text.trim())) {
+      _showError(context, 'Please enter a valid email address');
+      return false;
+    }
+
+    if (_passwordController.text.isEmpty) {
+      _showError(context, 'Please enter a password');
+      return false;
+    }
+
+    if (_passwordController.text.length < 6) {
+      _showError(context, 'Password must be at least 6 characters long');
+      return false;
+    }
+
+    if (_firstNameController.text.trim().isEmpty) {
+      _showError(context, 'Please enter your first name');
+      return false;
+    }
+
+    if (_lastNameController.text.trim().isEmpty) {
+      _showError(context, 'Please enter your last name');
+      return false;
+    }
+
+    if (!passConfirm()) {
+      _showError(context, 'Passwords do not match');
+      return false;
+    }
+
+    return true;
+  }
+
+  void _showError(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+
+  bool passConfirm() {
+    return _passwordController.text.trim() ==
+        _confirmPasswordController.text.trim();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.all(25.w),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Form fields with updated styling
+          _buildFormFields(),
+          SizedBox(height: 30.h),
+          RegisterButton(
+            onRegister: () async {
+              if (!_validateInputs(context)) return;
+
+              try {
+                await FirebaseAuth.instance.signOut();
+
+                // Generate user ID
+                String userId = await _generateUserId();
+
+                // Create auth user
+                final userCredential =
+                    await FirebaseAuth.instance.createUserWithEmailAndPassword(
+                  email: _emailController.text.trim(),
+                  password: _passwordController.text.trim(),
+                );
+
+                if (userCredential.user == null) {
+                  throw Exception('User creation failed');
+                }
+
+                // Create Firestore document
+                await FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(userCredential.user!.uid)
+                    .set({
+                  'userId': userId,
+                  'firstName': _firstNameController.text.trim(),
+                  'lastName': _lastNameController.text.trim(),
+                  'phoneNo': _phoneController.text.trim(),
+                  'rollNo': _rollNumberController.text.trim(),
+                  'batchNo': _batchNumberController.text.trim(),
+                  'registrationNo': _registrationNumberController.text.trim(),
+                  'deptName': _departmentController.text.trim(),
+                  'semesterNo': _semesterController.text.trim(),
+                  'email': _emailController.text.trim(),
+                  'isEmailVerified': false,
+                  'profilePicture': null,
+                  'createdAt': FieldValue.serverTimestamp(),
+                });
+
+                // Send verification email
+                await userCredential.user!.sendEmailVerification();
+                await FirebaseAuth.instance.signOut();
+
+                widget.onRegistrationComplete();
+              } catch (e) {
+                _showError(context, 'Registration failed: ${e.toString()}');
+              }
+            },
+            controllers: {
+              'email': _emailController,
+              'password': _passwordController,
+              'firstName': _firstNameController,
+              'lastName': _lastNameController,
+              'phone': _phoneController,
+              'confirmPassword': _confirmPasswordController,
+              'rollNumber': _rollNumberController,
+              'department': _departmentController,
+              'registrationNumber': _registrationNumberController,
+              'batchNumber': _batchNumberController,
+              'semester': _semesterController,
+            },
+          ),
+          SizedBox(height: 20.h),
+          // Login link
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                "Already have an account?",
+                style: TextStyle(
+                  color: Coloris.text_color.withOpacity(0.7),
+                  fontSize: 16.sp,
+                ),
+              ),
+              SizedBox(width: 10.w),
+              GestureDetector(
+                onTap: widget.onRegistrationComplete,
+                child: Text(
+                  "Login",
+                  style: TextStyle(
+                    color: Color(0xff6686F6),
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildFormFields() {
+    // ...existing form fields code...
     return Column(
       children: [
         Row(
@@ -433,6 +384,14 @@ class _RegisterPageState extends State<RegisterPage> {
     IconData? prefixIcon,
     bool isPassword = false,
   }) {
+    // Determine which password visibility state to use
+    bool isObscured = isPassword;
+    if (isPassword) {
+      isObscured = controller == _passwordController
+          ? _obscurePassword
+          : _obscureConfirmPassword;
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -450,12 +409,29 @@ class _RegisterPageState extends State<RegisterPage> {
             border: Border.all(color: Coloris.text_color.withOpacity(0.2)),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: TextField(
+          child: TextFormField(
             controller: controller,
-            obscureText: isPassword && _obscurePassword,
+            obscureText: isPassword ? isObscured : false,
             decoration: InputDecoration(
               prefixIcon: prefixIcon != null
                   ? Icon(prefixIcon, color: Color(0xff6686F6))
+                  : null,
+              suffixIcon: isPassword
+                  ? IconButton(
+                      icon: Icon(
+                        isObscured ? Icons.visibility_off : Icons.visibility,
+                        color: Color(0xff6686F6),
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          if (controller == _passwordController) {
+                            _obscurePassword = !_obscurePassword;
+                          } else if (controller == _confirmPasswordController) {
+                            _obscureConfirmPassword = !_obscureConfirmPassword;
+                          }
+                        });
+                      },
+                    )
                   : null,
               hintText: hint,
               hintStyle: TextStyle(
@@ -479,6 +455,73 @@ class _RegisterPageState extends State<RegisterPage> {
           ),
         ),
       ],
+    );
+  }
+}
+
+// Keep the RegisterButton as is
+class RegisterButton extends StatefulWidget {
+  final Function onRegister;
+  final Map<String, TextEditingController> controllers;
+
+  const RegisterButton({
+    Key? key,
+    required this.onRegister,
+    required this.controllers,
+  }) : super(key: key);
+
+  @override
+  State<RegisterButton> createState() => _RegisterButtonState();
+}
+
+class _RegisterButtonState extends State<RegisterButton> {
+  bool _isLoading = false;
+
+  void _handleRegister() async {
+    setState(() => _isLoading = true);
+    try {
+      await widget.onRegister();
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _isLoading ? null : _handleRegister,
+      child: Container(
+        width: double.infinity,
+        height: 45.h,
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+            colors: [Color(0xff6686F6), Color(0xff60BBEF)],
+          ),
+          borderRadius: BorderRadius.circular(25),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xff6686F6).withOpacity(0.3),
+              spreadRadius: 1,
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Center(
+          child: Text(
+            _isLoading ? "Creating Account..." : "Register",
+            style: TextStyle(
+              color: Coloris.white,
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

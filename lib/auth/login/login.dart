@@ -6,8 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class LoginPage extends StatefulWidget {
-  final VoidCallback showRegisterPage;
-  LoginPage({super.key, required this.showRegisterPage});
+  final VoidCallback onRegisterClick;
+  const LoginPage({Key? key, required this.onRegisterClick}) : super(key: key);
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -19,30 +19,107 @@ class _LoginPageState extends State<LoginPage> {
   bool _isLoading = false;
   bool _obscurePassword = true;
 
-  Future signIn() async {
-    setState(() {
-      _isLoading = true;
-    });
+  Future<void> signIn() async {
+    if (_isLoading) return;
+    setState(() => _isLoading = true);
 
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
+      // First, sign in with the provided credentials
+      final userCredential =
+          await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
-    } on FirebaseAuthException catch (e) {
-      String errorMessage = 'An error occurred';
-      if (e.code == 'user-not-found') {
-        errorMessage = 'No user found with this email';
-      } else if (e.code == 'wrong-password') {
-        errorMessage = 'Wrong password';
+
+      // Check if email is verified
+      if (!userCredential.user!.emailVerified) {
+        // Store reference to the user before signing out
+        User currentUser = userCredential.user!;
+
+        // Ask user if they want a new verification email
+        if (!mounted) return;
+        final sendEmail = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            title: const Text('Email Not Verified'),
+            content: const Text(
+                'Would you like to receive a new verification email?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Send Email'),
+              ),
+            ],
+          ),
+        );
+
+        // If user wants a new verification email
+        if (sendEmail == true) {
+          try {
+            // Send verification email while still signed in
+            await currentUser.sendEmailVerification();
+
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content:
+                    Text('Verification email sent. Please check your inbox.'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          } catch (e) {
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content:
+                    Text('Failed to send verification email: ${e.toString()}'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+
+        // Sign out after handling verification
+        await FirebaseAuth.instance.signOut();
       }
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(errorMessage)),
+        SnackBar(
+          content: Text(_getErrorMessage(e.code)),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('An unexpected error occurred: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
       );
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  String _getErrorMessage(String code) {
+    switch (code) {
+      case 'user-not-found':
+        return 'No user found with this email';
+      case 'wrong-password':
+        return 'Wrong password';
+      case 'too-many-requests':
+        return 'Too many sign-in attempts. Please try again later.';
+      default:
+        return 'Error: $code';
     }
   }
 
@@ -243,7 +320,7 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       SizedBox(width: 10.w),
                       GestureDetector(
-                        onTap: widget.showRegisterPage,
+                        onTap: widget.onRegisterClick,
                         child: Text(
                           "Register Now",
                           style: TextStyle(

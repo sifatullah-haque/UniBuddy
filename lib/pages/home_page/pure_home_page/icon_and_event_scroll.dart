@@ -124,7 +124,7 @@ class IconsAndEventScroll extends StatelessWidget {
         }
       },
       child: Container(
-        height: 80.0,
+        height: 85.0,
         width: 135.0,
         decoration: BoxDecoration(
           color: Coloris.primary_color,

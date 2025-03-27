@@ -41,7 +41,7 @@ class _MainNavigationState extends State<MainNavigation> {
           Positioned(
             left: 16.w,
             right: 16.w,
-            bottom: MediaQuery.of(context).padding.bottom + 4.h,
+            bottom: MediaQuery.of(context).padding.bottom + 16.h,
             child: Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(

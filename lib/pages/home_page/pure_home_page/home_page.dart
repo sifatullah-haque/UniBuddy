@@ -3,6 +3,7 @@ import 'package:diu/pages/home_page/askBot/askBot.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'gridview_with_icons.dart';
 import 'icon_and_event_scroll.dart';
@@ -16,6 +17,45 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final user = FirebaseAuth.instance.currentUser;
+  Map<String, dynamic>? userData;
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserData();
+  }
+
+  Future<void> _fetchUserData() async {
+    if (user != null) {
+      try {
+        final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user?.uid)
+            .get();
+
+        if (doc.exists) {
+          setState(() {
+            userData = doc.data();
+            isLoading = false;
+          });
+        } else {
+          setState(() {
+            isLoading = false;
+          });
+        }
+      } catch (e) {
+        print('Error fetching user data: $e');
+        setState(() {
+          isLoading = false;
+        });
+      }
+    } else {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +81,7 @@ class _HomePageState extends State<HomePage> {
     return Column(
       children: [
         Container(
-          height: 220.h,
+          height: 200.h,
           decoration: const BoxDecoration(
             borderRadius: BorderRadius.only(
               bottomLeft: Radius.circular(25.0),
@@ -67,7 +107,7 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
         SizedBox(
-          height: 20.h,
+          height: 18.h,
         ),
         const GridviewWithIcons(),
         SizedBox(
@@ -80,43 +120,103 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildAvatarAndUserInfo() {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.start,
       children: [
         CircleAvatar(
-          radius: 45.0,
+          radius: 40.0,
           backgroundImage: AssetImage("assets/avatars/sifat.jpg"),
         ),
         SizedBox(width: 20.w),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        isLoading ? _buildLoadingInfo() : _buildUserInfo(),
+      ],
+    );
+  }
+
+  Widget _buildLoadingInfo() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Hello ! ",
+          style: TextStyle(
+            color: Coloris.white,
+            fontWeight: FontWeight.w600,
+            fontSize: 16.sp,
+          ),
+        ),
+        SizedBox(height: 5.sp),
+        Container(
+          width: 150.w,
+          height: 20.h,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.3),
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
+        SizedBox(height: 10.sp),
+        Container(
+          width: 80.w,
+          height: 16.h,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.3),
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildUserInfo() {
+    final String fullName = userData != null
+        ? "${userData!['firstName'] ?? ''} ${userData!['lastName'] ?? ''}"
+        : "User";
+
+    final String batchNo = userData != null ? userData!['batchNo'] ?? "" : "";
+
+    final String userId = userData != null ? userData!['userId'] ?? "" : "";
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Hello ! ",
+          style: TextStyle(
+            color: Coloris.white,
+            fontWeight: FontWeight.w600,
+            fontSize: 16.sp,
+          ),
+        ),
+        SizedBox(height: 5.sp),
+        Text(
+          fullName,
+          style: TextStyle(
+            color: Coloris.white,
+            fontSize: 20.sp,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        SizedBox(height: 5.sp),
+        Row(
           children: [
             Text(
-              "Hello ! ",
+              userId.isNotEmpty ? userId : "($batchNo)",
               style: TextStyle(
                 color: Coloris.white,
-                fontWeight: FontWeight.w600,
-                fontSize: 16.sp,
+                fontWeight: FontWeight.w400,
+                fontSize: 14.sp,
               ),
             ),
-            SizedBox(height: 5.sp),
+            SizedBox(width: 5.w),
             Text(
-              "Sifatullah Haque Sajeeb",
+              batchNo.isNotEmpty ? "($batchNo)" : "",
               style: TextStyle(
                 color: Coloris.white,
-                fontSize: 20.sp,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w400,
+                fontSize: 14.sp,
               ),
             ),
-            SizedBox(height: 5.sp),
-            const Text(
-              "D-78(A)",
-              style: TextStyle(
-                color: Coloris.white,
-                fontWeight: FontWeight.w600,
-              ),
-            )
           ],
-        ),
+        )
       ],
     );
   }
@@ -159,7 +259,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   double _calculateContainerTopPosition(BuildContext context) {
-    return ScreenUtil().screenHeight * 0.20;
+    return ScreenUtil().screenHeight * 0.19;
   }
 
   double _calculateContainerSidePosition(BuildContext context) {

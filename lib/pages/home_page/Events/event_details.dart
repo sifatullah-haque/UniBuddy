@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:diu/Constant/color_is.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:convert';
+import 'package:diu/pages/home_page/Events/event_register.dart';
 
 class EventDetails extends StatelessWidget {
   final String eventId;
@@ -88,60 +90,75 @@ class EventDetails extends StatelessWidget {
   }
 
   Widget _buildEventContent(BuildContext context) {
-    final date = eventData['date'] != null
-        ? DateTime.parse(eventData['date']).toString().split(' ')[0]
-        : 'Date not set';
-    final time = eventData['time'] ?? 'Time not set';
-    final venue = eventData['venue'] ?? 'Venue not set';
-    final description = eventData['description'] ?? 'No description available';
-    final isFree = eventData['isFree'] ?? true;
-    final amount = eventData['amount']?.toString() ?? '0';
-    final paymentMethods = eventData['paymentMethods'] ?? [];
-    final paymentNumber = eventData['paymentNumber'] ?? '';
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('eventRegistrations')
+          .where('eventId', isEqualTo: eventId)
+          .where('userId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
+          .snapshots(),
+      builder: (context, snapshot) {
+        bool isRegistered = false;
+        if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
+          isRegistered = true;
+        }
 
-    return Padding(
-      padding: EdgeInsets.all(20.w),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildInfoRow(Icons.calendar_today, "Date", date),
-          SizedBox(height: 15.h),
-          _buildInfoRow(Icons.location_on, "Venue", venue),
-          SizedBox(height: 15.h),
-          _buildInfoRow(Icons.access_time, "Time", time),
-          if (!isFree) ...[
-            SizedBox(height: 15.h),
-            _buildInfoRow(Icons.money, "Entry Fee", "$amount Tk"),
-            SizedBox(height: 15.h),
-            _buildInfoRow(
-                Icons.payment, "Payment Methods", paymentMethods.join(", ")),
-            if (paymentNumber.isNotEmpty) ...[
+        final date = eventData['date'] != null
+            ? DateTime.parse(eventData['date']).toString().split(' ')[0]
+            : 'Date not set';
+        final time = eventData['time'] ?? 'Time not set';
+        final venue = eventData['venue'] ?? 'Venue not set';
+        final description =
+            eventData['description'] ?? 'No description available';
+        final isFree = eventData['isFree'] ?? true;
+        final amount = eventData['amount']?.toString() ?? '0';
+        final paymentMethods = eventData['paymentMethods'] ?? [];
+        final paymentNumber = eventData['paymentNumber'] ?? '';
+
+        return Padding(
+          padding: EdgeInsets.all(20.w),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildInfoRow(Icons.calendar_today, "Date", date),
               SizedBox(height: 15.h),
-              _buildInfoRow(Icons.phone, "Payment Number", paymentNumber),
+              _buildInfoRow(Icons.location_on, "Venue", venue),
+              SizedBox(height: 15.h),
+              _buildInfoRow(Icons.access_time, "Time", time),
+              if (!isFree) ...[
+                SizedBox(height: 15.h),
+                _buildInfoRow(Icons.money, "Entry Fee", "$amount Tk"),
+                SizedBox(height: 15.h),
+                _buildInfoRow(Icons.payment, "Payment Methods",
+                    paymentMethods.join(", ")),
+                if (paymentNumber.isNotEmpty) ...[
+                  SizedBox(height: 15.h),
+                  _buildInfoRow(Icons.phone, "Payment Number", paymentNumber),
+                ],
+              ],
+              SizedBox(height: 25.h),
+              Text(
+                "About Event",
+                style: TextStyle(
+                  fontSize: 20.sp,
+                  fontWeight: FontWeight.bold,
+                  color: Coloris.text_color,
+                ),
+              ),
+              SizedBox(height: 10.h),
+              Text(
+                description,
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  color: Coloris.text_color.withOpacity(0.8),
+                  height: 1.5,
+                ),
+              ),
+              SizedBox(height: 25.h),
+              _buildRegisterButton(context, isRegistered),
             ],
-          ],
-          SizedBox(height: 25.h),
-          Text(
-            "About Event",
-            style: TextStyle(
-              fontSize: 20.sp,
-              fontWeight: FontWeight.bold,
-              color: Coloris.text_color,
-            ),
           ),
-          SizedBox(height: 10.h),
-          Text(
-            description,
-            style: TextStyle(
-              fontSize: 16.sp,
-              color: Coloris.text_color.withOpacity(0.8),
-              height: 1.5,
-            ),
-          ),
-          SizedBox(height: 25.h),
-          _buildRegisterButton(),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -175,19 +192,21 @@ class EventDetails extends StatelessWidget {
     );
   }
 
-  Widget _buildRegisterButton() {
+  Widget _buildRegisterButton(BuildContext context, bool isRegistered) {
     return Container(
       width: double.infinity,
       height: 50.h,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xff6686F6), Color(0xff60BBEF)],
+        gradient: LinearGradient(
+          colors: isRegistered
+              ? [Colors.grey, Colors.grey.shade600]
+              : [Color(0xff6686F6), Color(0xff60BBEF)],
         ),
         borderRadius: BorderRadius.circular(25),
       ),
       child: Center(
         child: Text(
-          "Register Now",
+          isRegistered ? "Already Registered" : "Register Now",
           style: TextStyle(
             color: Colors.white,
             fontSize: 18.sp,

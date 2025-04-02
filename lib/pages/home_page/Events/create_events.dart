@@ -193,7 +193,16 @@ class _CreateEventState extends State<CreateEvent> {
           }),
       };
 
-      await FirebaseFirestore.instance.collection('events').add(eventData);
+      // Add the event to Firestore and get the reference
+      DocumentReference eventRef =
+          await FirebaseFirestore.instance.collection('events').add(eventData);
+
+      // Send notifications to all users
+      await _sendEventNotificationToAllUsers(
+        eventId: eventRef.id,
+        eventTitle: _titleController.text,
+        eventDate: _selectedDate?.toString().split(' ')[0] ?? 'Not set',
+      );
 
       if (!mounted) return;
       Navigator.pop(context);
@@ -209,6 +218,45 @@ class _CreateEventState extends State<CreateEvent> {
       );
     } finally {
       setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _sendEventNotificationToAllUsers({
+    required String eventId,
+    required String eventTitle,
+    required String eventDate,
+  }) async {
+    try {
+      // Get all users
+      final usersSnapshot =
+          await FirebaseFirestore.instance.collection('users').get();
+
+      // Create batch write
+      final batch = FirebaseFirestore.instance.batch();
+
+      // Create notification for each user
+      for (var userDoc in usersSnapshot.docs) {
+        final notificationRef =
+            FirebaseFirestore.instance.collection('notifications').doc();
+
+        batch.set(notificationRef, {
+          'userId': userDoc.id,
+          'title': 'New Event: $eventTitle',
+          'message':
+              'A new event has been scheduled for $eventDate. Register now!',
+          'timestamp': FieldValue.serverTimestamp(),
+          'isRead': false,
+          'type': 'event',
+          'relatedItemId': eventId,
+          'icon': 'event', // For custom notification icon
+        });
+      }
+
+      // Commit the batch
+      await batch.commit();
+      print('Event notifications sent to all users');
+    } catch (e) {
+      print('Error sending event notifications: $e');
     }
   }
 

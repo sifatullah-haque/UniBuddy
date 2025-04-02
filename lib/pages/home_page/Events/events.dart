@@ -85,7 +85,7 @@ class Events extends StatelessWidget {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('events')
-          .orderBy('createdAt', descending: true)
+          .orderBy('date', descending: false) // Changed from createdAt to date
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {

@@ -3,6 +3,8 @@ import 'package:diu/pages/Specific_Club/DIU_CPC/diu_cpc.dart';
 import 'package:diu/pages/home_page/Events/event_details.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:convert';
 
 class IconsAndEventScroll extends StatelessWidget {
   const IconsAndEventScroll({
@@ -72,63 +74,77 @@ class IconsAndEventScroll extends StatelessWidget {
             style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
           ),
           const SizedBox(height: 6.0),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _roundedImageContainer(
-                    "assets/banner/events/event1.jpg", context),
-                SizedBox(
-                  width: 10.w,
-                ),
-                _roundedImageContainer("assets/banner/events/event2.jpg",
-                    context), // Placeholder Container
-                SizedBox(
-                  width: 10.w,
-                ),
-                _roundedImageContainer(
-                    "assets/banner/events/event3.jpg", context),
-                SizedBox(
-                  width: 10.w,
-                ),
-                _roundedImageContainer(
-                    "assets/banner/events/event4.jpg", context),
-                SizedBox(
-                  width: 10.w,
-                ),
-                _roundedImageContainer("assets/banner/events/event5.jpg",
-                    context), // Placeholder Container
-              ],
-            ),
-          )
+          _buildUpcomingEvents(),
         ],
       ),
     );
   }
 
-  Widget _roundedImageContainer(String? imagePath, BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        if (imagePath != null) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => EventDetails(
-                eventId: 'static_event',
-                eventData: {
-                  'title': 'Tech Fest 2024',
-                  'imageUrl': imagePath,
-                  'date': '2024-03-15',
-                  'venue': 'DIU Campus',
-                  'time': '10:00 AM',
-                  'description':
-                      'A grand technology festival featuring workshops, competitions, and exhibitions.',
-                  'isFree': true,
-                },
-              ),
-            ),
+  Widget _buildUpcomingEvents() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('events')
+          .where('date',
+              isGreaterThanOrEqualTo:
+                  DateTime.now().toIso8601String()) // Only future events
+          .orderBy('date', descending: false) // Sort by date ascending
+          .limit(5) // Keep the limit
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Text('Error: ${snapshot.error}');
+        }
+
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(),
           );
         }
+
+        final events = snapshot.data?.docs ?? [];
+
+        if (events.isEmpty) {
+          return const Center(
+            child: Text('No upcoming events'),
+          );
+        }
+
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: events.map((event) {
+              final eventData = event.data() as Map<String, dynamic>;
+              return Padding(
+                padding: EdgeInsets.only(right: 10.w),
+                child: _roundedImageContainer(
+                  context,
+                  event.id,
+                  eventData,
+                ),
+              );
+            }).toList(),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _roundedImageContainer(
+    BuildContext context,
+    String eventId,
+    Map<String, dynamic> eventData,
+  ) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => EventDetails(
+              eventId: eventId,
+              eventData: eventData,
+            ),
+          ),
+        );
       },
       child: Container(
         height: 85.0,
@@ -137,15 +153,25 @@ class IconsAndEventScroll extends StatelessWidget {
           color: Coloris.primary_color,
           borderRadius: BorderRadius.circular(10.0),
         ),
-        child: imagePath != null
+        child: eventData['imageBase64'] != null
             ? ClipRRect(
                 borderRadius: BorderRadius.circular(10.0),
-                child: Image.asset(
-                  imagePath,
+                child: Image.memory(
+                  base64Decode(eventData['imageBase64']),
                   fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    color: Colors.grey[300],
+                    child: Icon(Icons.error),
+                  ),
                 ),
               )
-            : null,
+            : Container(
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(10.0),
+                ),
+                child: Icon(Icons.image),
+              ),
       ),
     );
   }

@@ -1,19 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:diu/Constant/color_is.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:convert';
 
 class EventDetails extends StatelessWidget {
-  final String title;
-  final String imagePath;
-  final String date;
-  final String venue;
+  final String eventId;
+  final Map<String, dynamic> eventData;
 
   const EventDetails({
     Key? key,
-    required this.title,
-    required this.imagePath,
-    required this.date,
-    required this.venue,
+    required this.eventId,
+    required this.eventData,
   }) : super(key: key);
 
   @override
@@ -24,7 +22,7 @@ class EventDetails extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildEventBanner(context),
-            _buildEventContent(),
+            _buildEventContent(context),
           ],
         ),
       ),
@@ -34,12 +32,23 @@ class EventDetails extends StatelessWidget {
   Widget _buildEventBanner(BuildContext context) {
     return Stack(
       children: [
-        Image.asset(
-          imagePath,
-          height: 300.h,
-          width: double.infinity,
-          fit: BoxFit.cover,
-        ),
+        eventData['imageBase64'] != null
+            ? Image.memory(
+                base64Decode(eventData['imageBase64']),
+                height: 300.h,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  height: 300.h,
+                  color: Colors.grey[300],
+                  child: Icon(Icons.error),
+                ),
+              )
+            : Container(
+                height: 300.h,
+                color: Colors.grey[300],
+                child: Icon(Icons.image),
+              ),
         Positioned(
           top: 40.h,
           left: 10.w,
@@ -66,7 +75,7 @@ class EventDetails extends StatelessWidget {
           left: 20.w,
           right: 20.w,
           child: Text(
-            title,
+            eventData['title'] ?? 'Event Title',
             style: TextStyle(
               fontSize: 24.sp,
               fontWeight: FontWeight.bold,
@@ -78,7 +87,18 @@ class EventDetails extends StatelessWidget {
     );
   }
 
-  Widget _buildEventContent() {
+  Widget _buildEventContent(BuildContext context) {
+    final date = eventData['date'] != null
+        ? DateTime.parse(eventData['date']).toString().split(' ')[0]
+        : 'Date not set';
+    final time = eventData['time'] ?? 'Time not set';
+    final venue = eventData['venue'] ?? 'Venue not set';
+    final description = eventData['description'] ?? 'No description available';
+    final isFree = eventData['isFree'] ?? true;
+    final amount = eventData['amount']?.toString() ?? '0';
+    final paymentMethods = eventData['paymentMethods'] ?? [];
+    final paymentNumber = eventData['paymentNumber'] ?? '';
+
     return Padding(
       padding: EdgeInsets.all(20.w),
       child: Column(
@@ -88,7 +108,18 @@ class EventDetails extends StatelessWidget {
           SizedBox(height: 15.h),
           _buildInfoRow(Icons.location_on, "Venue", venue),
           SizedBox(height: 15.h),
-          _buildInfoRow(Icons.access_time, "Time", "10:00 AM - 5:00 PM"),
+          _buildInfoRow(Icons.access_time, "Time", time),
+          if (!isFree) ...[
+            SizedBox(height: 15.h),
+            _buildInfoRow(Icons.money, "Entry Fee", "$amount Tk"),
+            SizedBox(height: 15.h),
+            _buildInfoRow(
+                Icons.payment, "Payment Methods", paymentMethods.join(", ")),
+            if (paymentNumber.isNotEmpty) ...[
+              SizedBox(height: 15.h),
+              _buildInfoRow(Icons.phone, "Payment Number", paymentNumber),
+            ],
+          ],
           SizedBox(height: 25.h),
           Text(
             "About Event",
@@ -100,7 +131,7 @@ class EventDetails extends StatelessWidget {
           ),
           SizedBox(height: 10.h),
           Text(
-            "Join us for an exciting event featuring workshops, competitions, and exhibitions. Network with industry professionals and showcase your talents. Don't miss this opportunity to be part of something amazing!",
+            description,
             style: TextStyle(
               fontSize: 16.sp,
               color: Coloris.text_color.withOpacity(0.8),

@@ -1,6 +1,7 @@
 import 'package:diu/pages/home_page/Bus_Schedule/busSchedule.dart';
 import 'package:diu/pages/home_page/Cafeteria/cafeteria.dart';
 import 'package:diu/pages/home_page/Certificate/certificate.dart';
+import 'package:diu/pages/home_page/Class_Schedule/CreateClassSchedule.dart';
 import 'package:diu/pages/home_page/Class_Schedule/classSchedule.dart';
 import 'package:diu/pages/home_page/Daily_Streak/daily_streak.dart';
 import 'package:diu/pages/home_page/Emergency/emergency.dart';
@@ -33,14 +34,14 @@ class _GridviewWithIconsState extends State<GridviewWithIcons> {
     // First Page
     [
       {
-        "title": "Cafeteria",
-        "icon": "cafeteria",
-        "destination": Cafeteria(),
+        "title": "Classes",
+        "icon": "Certificates",
+        "destination": ClassSchedule(),
       },
       {
-        "title": "Bus Schedule",
-        "icon": "bus",
-        "destination": BusSchedule(),
+        "title": "Events",
+        "icon": "events",
+        "destination": Events(),
       },
       {
         "title": "Join Club",
@@ -48,14 +49,19 @@ class _GridviewWithIconsState extends State<GridviewWithIcons> {
         "destination": JoinClub(),
       },
       {
-        "title": "Class Times",
-        "icon": "Certificates",
-        "destination": ClassSchedule(),
+        "title": "Bus Schedule",
+        "icon": "bus",
+        "destination": BusSchedule(),
       },
+      // {
+      //   "title": "Ideas",
+      //   "icon": "IDEA",
+      //   "destination": Idea(),
+      // },
       {
-        "title": "Emergency",
-        "icon": "emergency",
-        "destination": Emergency(),
+        "title": "Create Class",
+        "icon": "IDEA",
+        "destination": CreateClassSchedule(),
       },
       {
         "title": "Calendar",
@@ -64,17 +70,22 @@ class _GridviewWithIconsState extends State<GridviewWithIcons> {
       },
       {
         "title": "Lost Item",
-        "icon": "lost",
+        "icon": "Support",
         "destination": LostItem(),
       },
       {
-        "title": "Events",
-        "icon": "events",
-        "destination": Events(),
+        "title": "Emergency",
+        "icon": "emergency",
+        "destination": Emergency(),
       },
     ],
     // Second Page
     [
+      {
+        "title": "Cafeteria",
+        "icon": "cafeteria",
+        "destination": Cafeteria(),
+      },
       {
         "title": "Join Club",
         "icon": "Join_Club",
@@ -94,11 +105,6 @@ class _GridviewWithIconsState extends State<GridviewWithIcons> {
         "title": "Personal Data",
         "icon": "Personal_Data",
         "destination": PersonalData(),
-      },
-      {
-        "title": "Idea",
-        "icon": "IDEA",
-        "destination": Idea(),
       },
       {
         "title": "Support",

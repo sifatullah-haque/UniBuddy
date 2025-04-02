@@ -114,10 +114,17 @@ class IconsAndEventScroll extends StatelessWidget {
             context,
             MaterialPageRoute(
               builder: (context) => EventDetails(
-                title: "Tech Fest 2024",
-                imagePath: imagePath,
-                date: "March 15, 2024",
-                venue: "DIU Campus",
+                eventId: 'static_event',
+                eventData: {
+                  'title': 'Tech Fest 2024',
+                  'imageUrl': imagePath,
+                  'date': '2024-03-15',
+                  'venue': 'DIU Campus',
+                  'time': '10:00 AM',
+                  'description':
+                      'A grand technology festival featuring workshops, competitions, and exhibitions.',
+                  'isFree': true,
+                },
               ),
             ),
           );

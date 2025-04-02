@@ -427,6 +427,27 @@ class _LostItemState extends State<LostItem> {
     _foundByBatchController.clear();
     _foundByContactController.clear();
 
+    // Preload user data
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+
+        if (userDoc.exists) {
+          final userData = userDoc.data()!;
+          _foundByController.text =
+              '${userData['firstName']} ${userData['lastName']}';
+          _foundByBatchController.text = userData['batchNo'] ?? '';
+          _foundByContactController.text = userData['phoneNo'] ?? '';
+        }
+      } catch (e) {
+        print('Error loading user data for "Found it!" dialog: $e');
+      }
+    }
+
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => Material(
@@ -490,11 +511,13 @@ class _LostItemState extends State<LostItem> {
                       _buildFormField(
                         controller: _foundByController,
                         labelText: 'Found By',
+                        enabled: false,
                       ),
                       SizedBox(height: 12.h),
                       _buildFormField(
                         controller: _foundByBatchController,
                         labelText: 'Batch No.',
+                        enabled: false,
                       ),
                       SizedBox(height: 12.h),
                       _buildFormField(

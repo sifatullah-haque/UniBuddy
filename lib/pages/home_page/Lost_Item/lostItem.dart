@@ -34,6 +34,7 @@ class _LostItemState extends State<LostItem> {
   DateTime? _selectedDate;
   File? _selectedImage;
   bool _isLoading = false;
+  bool _isLoadingUserData = false;
 
   @override
   void dispose() {
@@ -50,9 +51,42 @@ class _LostItemState extends State<LostItem> {
     super.dispose();
   }
 
+  Future<void> _loadUserData() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    setState(() {
+      _isLoadingUserData = true;
+    });
+
+    try {
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      if (userDoc.exists) {
+        final userData = userDoc.data()!;
+
+        setState(() {
+          // Pre-fill form with user data
+          _lostByController.text =
+              '${userData['firstName']} ${userData['lastName']}';
+          _batchNameController.text = userData['batchNo'] ?? '';
+          _contactController.text = userData['phoneNo'] ?? '';
+        });
+      }
+    } catch (e) {
+      print('Error loading user data: $e');
+    } finally {
+      setState(() {
+        _isLoadingUserData = false;
+      });
+    }
+  }
+
   Future<void> _pickImage() async {
     try {
-      // Request permissions first
       final status = await Permission.storage.request();
       final cameraStatus = await Permission.camera.request();
 
@@ -63,7 +97,6 @@ class _LostItemState extends State<LostItem> {
         return;
       }
 
-      // Show image source choice dialog
       final source = await showDialog<ImageSource>(
         context: context,
         builder: (context) => AlertDialog(
@@ -91,16 +124,19 @@ class _LostItemState extends State<LostItem> {
       final picker = ImagePicker();
       final pickedFile = await picker.pickImage(
         source: source,
-        imageQuality: 70, // Reduce image quality to save storage
-        maxWidth: 1000, // Limit image dimensions
+        imageQuality: 70,
+        maxWidth: 1000,
       );
 
       if (pickedFile != null) {
         setState(() {
           _selectedImage = File(pickedFile.path);
         });
+        // Force rebuild to show image immediately
+        if (mounted) setState(() {});
       }
     } catch (e) {
+      print("Error picking image: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error picking image: $e')),
       );
@@ -257,7 +293,6 @@ class _LostItemState extends State<LostItem> {
     }
   }
 
-  // Add this new method to send notifications to all users
   Future<void> _sendNotificationToAllUsers({
     required String title,
     required String message,
@@ -422,6 +457,406 @@ class _LostItemState extends State<LostItem> {
         );
       }
     }
+  }
+
+  void _showCreateItemDialog() {
+    _loadUserData();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        // Get keyboard visibility status
+        final bool isKeyboardVisible =
+            MediaQuery.of(context).viewInsets.bottom > 0;
+        final double screenHeight = MediaQuery.of(context).size.height;
+
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: EdgeInsets.symmetric(horizontal: 20.w),
+          child: Container(
+            constraints: BoxConstraints(
+              maxHeight: isKeyboardVisible
+                  ? screenHeight *
+                      0.5 // Smaller height when keyboard is visible
+                  : screenHeight * 0.7, // Normal height when keyboard is hidden
+            ),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Custom header
+                Container(
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 20.w, vertical: 15.h),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: [Color(0xff6686F6), Color(0xff60BBEF)],
+                    ),
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(20),
+                      topRight: Radius.circular(20),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Create Lost Item Alert',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18.sp,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: Icon(
+                          Icons.close,
+                          color: Colors.white,
+                          size: 20.sp,
+                        ),
+                        padding: EdgeInsets.zero,
+                        constraints: BoxConstraints(),
+                      ),
+                    ],
+                  ),
+                ),
+                // Form content
+                Expanded(
+                  child: Form(
+                    key: _formKey,
+                    child: SingleChildScrollView(
+                      physics: BouncingScrollPhysics(),
+                      child: Padding(
+                        padding: EdgeInsets.all(20.w),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (!isKeyboardVisible) ...[
+                              _buildImagePicker(),
+                              SizedBox(height: 16.h),
+                            ],
+                            // Rest of your form fields
+                            _buildSectionTitle("User Information"),
+                            _buildFormField(
+                              controller: _lostByController,
+                              labelText: 'Item Lost By',
+                              enabled: false,
+                            ),
+                            SizedBox(height: 12.h),
+
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildFormField(
+                                    controller: _batchNameController,
+                                    labelText: 'Batch',
+                                    enabled: false,
+                                  ),
+                                ),
+                                SizedBox(width: 10.w),
+                                Expanded(
+                                  child: _buildFormField(
+                                    controller: _contactController,
+                                    labelText: 'Contact',
+                                    enabled: false,
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                            SizedBox(height: 20.h),
+                            _buildSectionTitle("Item Information"),
+                            _buildFormField(
+                              controller: _titleController,
+                              labelText: 'Item Name*',
+                              validator: (value) => value?.isEmpty ?? true
+                                  ? 'Required field'
+                                  : null,
+                            ),
+                            SizedBox(height: 12.h),
+                            _buildDatePicker(),
+                            SizedBox(height: 12.h),
+                            _buildFormField(
+                              controller: _locationController,
+                              labelText: 'Location Lost*',
+                              validator: (value) => value?.isEmpty ?? true
+                                  ? 'Required field'
+                                  : null,
+                            ),
+                            SizedBox(height: 12.h),
+                            _buildFormField(
+                              controller: _descriptionController,
+                              labelText: 'Description',
+                              maxLines: 3,
+                            ),
+                            SizedBox(height: 20.h),
+
+                            _buildSubmitButton(),
+                            SizedBox(height: 10.h),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildImagePicker() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Item Image",
+          style: TextStyle(
+            color: Coloris.text_color,
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        SizedBox(height: 8.h),
+        GestureDetector(
+          onTap: _pickImage,
+          child: Container(
+            height: 180.h,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(15),
+              border: Border.all(color: Colors.grey.withOpacity(0.3)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.1),
+                  spreadRadius: 1,
+                  blurRadius: 3,
+                  offset: Offset(0, 1),
+                ),
+              ],
+            ),
+            child: _selectedImage != null
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(15),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        // Image preview
+                        Image.file(
+                          _selectedImage!,
+                          fit: BoxFit.cover,
+                        ),
+                        // Change image button overlay
+                        Positioned(
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          child: Container(
+                            padding: EdgeInsets.symmetric(vertical: 8.h),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.bottomCenter,
+                                end: Alignment.topCenter,
+                                colors: [
+                                  Colors.black.withOpacity(0.7),
+                                  Colors.transparent,
+                                ],
+                                stops: [0.0, 0.5],
+                              ),
+                            ),
+                            child: Center(
+                              child: Text(
+                                "Tap to change image",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14.sp,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.add_photo_alternate,
+                        size: 40.sp,
+                        color: Color(0xff6686F6),
+                      ),
+                      SizedBox(height: 8.h),
+                      Text(
+                        "Add Item Image",
+                        style: TextStyle(
+                          color: Coloris.text_color,
+                          fontSize: 14.sp,
+                        ),
+                      ),
+                      SizedBox(height: 4.h),
+                      Text(
+                        "(Optional)",
+                        style: TextStyle(
+                          color: Colors.grey,
+                          fontSize: 12.sp,
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 8.h),
+      child: Text(
+        title,
+        style: TextStyle(
+          color: Color(0xff6686F6),
+          fontSize: 16.sp,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFormField({
+    required TextEditingController controller,
+    required String labelText,
+    bool enabled = true,
+    int maxLines = 1,
+    String? Function(String?)? validator,
+  }) {
+    return TextFormField(
+      controller: controller,
+      enabled: enabled,
+      maxLines: maxLines,
+      style: TextStyle(
+        fontSize: 14.sp,
+        color: enabled ? Coloris.text_color : Colors.grey[700],
+      ),
+      decoration: InputDecoration(
+        labelText: labelText,
+        labelStyle: TextStyle(
+          color: Colors.grey[600],
+          fontSize: 14.sp,
+        ),
+        contentPadding: EdgeInsets.symmetric(horizontal: 15.w, vertical: 12.h),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: Colors.grey.withOpacity(0.3)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: Colors.grey.withOpacity(0.3)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: Color(0xff6686F6), width: 1.5),
+        ),
+        filled: !enabled,
+        fillColor: enabled ? Colors.transparent : Colors.grey[100],
+      ),
+      validator: validator,
+    );
+  }
+
+  Widget _buildDatePicker() {
+    return TextFormField(
+      controller: _dateLostController,
+      readOnly: true,
+      onTap: _selectDate,
+      style: TextStyle(
+        fontSize: 14.sp,
+        color: Coloris.text_color,
+      ),
+      decoration: InputDecoration(
+        labelText: 'Date Lost*',
+        labelStyle: TextStyle(
+          color: Colors.grey[600],
+          fontSize: 14.sp,
+        ),
+        contentPadding: EdgeInsets.symmetric(horizontal: 15.w, vertical: 12.h),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: Colors.grey.withOpacity(0.3)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: Colors.grey.withOpacity(0.3)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: Color(0xff6686F6), width: 1.5),
+        ),
+        suffixIcon: Icon(
+          Icons.calendar_today,
+          size: 20.sp,
+          color: Color(0xff6686F6),
+        ),
+      ),
+      validator: (value) =>
+          value?.isEmpty ?? true ? 'Please select a date' : null,
+    );
+  }
+
+  Widget _buildSubmitButton() {
+    return GestureDetector(
+      onTap: _isLoadingUserData || _isLoading ? null : _createLostItem,
+      child: Container(
+        width: double.infinity,
+        height: 50.h,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: _isLoadingUserData || _isLoading
+                ? [Colors.grey, Colors.grey.shade400]
+                : [Color(0xff6686F6), Color(0xff60BBEF)],
+          ),
+          borderRadius: BorderRadius.circular(15),
+          boxShadow: [
+            BoxShadow(
+              color: Color(0xff6686F6).withOpacity(0.3),
+              spreadRadius: 1,
+              blurRadius: 8,
+              offset: Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Center(
+          child: _isLoading
+              ? SizedBox(
+                  height: 20.h,
+                  width: 20.h,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                )
+              : Text(
+                  _isLoadingUserData ? "Loading..." : "Create Lost Item Alert",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -709,176 +1144,6 @@ class _LostItemState extends State<LostItem> {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  void _showCreateItemDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          'Create Lost Item Alert',
-          style: TextStyle(
-            color: Coloris.text_color,
-            fontSize: 20.sp,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        content: Form(
-          key: _formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: _lostByController,
-                  decoration: InputDecoration(
-                    labelText: 'Item Lost By',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  validator: (value) =>
-                      value?.isEmpty ?? true ? 'Required field' : null,
-                ),
-                SizedBox(height: 16.h),
-                TextFormField(
-                  controller: _batchNameController,
-                  decoration: InputDecoration(
-                    labelText: 'Batch Name',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  validator: (value) =>
-                      value?.isEmpty ?? true ? 'Required field' : null,
-                ),
-                SizedBox(height: 16.h),
-                TextFormField(
-                  controller: _titleController,
-                  decoration: InputDecoration(
-                    labelText: 'Item Name',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  validator: (value) =>
-                      value?.isEmpty ?? true ? 'Required field' : null,
-                ),
-                SizedBox(height: 16.h),
-                TextFormField(
-                  controller: _dateLostController,
-                  readOnly: true,
-                  onTap: _selectDate,
-                  decoration: InputDecoration(
-                    labelText: 'Date Lost',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    suffixIcon: Icon(Icons.calendar_today),
-                  ),
-                  validator: (value) =>
-                      value?.isEmpty ?? true ? 'Required field' : null,
-                ),
-                SizedBox(height: 16.h),
-                TextFormField(
-                  controller: _locationController,
-                  decoration: InputDecoration(
-                    labelText: 'Location Lost',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter location';
-                    }
-                    return null;
-                  },
-                ),
-                SizedBox(height: 16.h),
-                TextFormField(
-                  controller: _contactController,
-                  decoration: InputDecoration(
-                    labelText: 'Contact Number',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  keyboardType: TextInputType.phone,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter contact number';
-                    }
-                    return null;
-                  },
-                ),
-                SizedBox(height: 16.h),
-                TextFormField(
-                  controller: _descriptionController,
-                  decoration: InputDecoration(
-                    labelText: 'Description',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  maxLines: 3,
-                ),
-                SizedBox(height: 16.h),
-                GestureDetector(
-                  onTap: _pickImage,
-                  child: Container(
-                    height: 100.h,
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: _selectedImage != null
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child:
-                                Image.file(_selectedImage!, fit: BoxFit.cover),
-                          )
-                        : Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.add_photo_alternate, size: 40),
-                                Text('Add Image (Optional)'),
-                              ],
-                            ),
-                          ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: TextStyle(color: Colors.grey),
-            ),
-          ),
-          Container(
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xff6686F6), Color(0xff60BBEF)],
-              ),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: TextButton(
-              onPressed: _isLoading ? null : _createLostItem,
-              child: Text(
-                _isLoading ? 'Creating...' : 'Create',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

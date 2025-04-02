@@ -193,24 +193,39 @@ class EventDetails extends StatelessWidget {
   }
 
   Widget _buildRegisterButton(BuildContext context, bool isRegistered) {
-    return Container(
-      width: double.infinity,
-      height: 50.h,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isRegistered
-              ? [Colors.grey, Colors.grey.shade600]
-              : [Color(0xff6686F6), Color(0xff60BBEF)],
+    return GestureDetector(
+      onTap: isRegistered
+          ? null
+          : () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => EventRegister(
+                    eventId: eventId,
+                    eventData: eventData,
+                  ),
+                ),
+              );
+            },
+      child: Container(
+        width: double.infinity,
+        height: 50.h,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: isRegistered
+                ? [Colors.grey, Colors.grey.shade600]
+                : [Color(0xff6686F6), Color(0xff60BBEF)],
+          ),
+          borderRadius: BorderRadius.circular(25),
         ),
-        borderRadius: BorderRadius.circular(25),
-      ),
-      child: Center(
-        child: Text(
-          isRegistered ? "Already Registered" : "Register Now",
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 18.sp,
-            fontWeight: FontWeight.bold,
+        child: Center(
+          child: Text(
+            isRegistered ? "Already Registered" : "Register Now",
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18.sp,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
       ),

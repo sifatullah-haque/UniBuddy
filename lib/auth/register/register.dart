@@ -3,11 +3,13 @@ import 'package:diu/Constant/color_is.dart';
 import 'package:diu/Constant/common_button.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'dart:io';
+import 'dart:convert';
 
-// Convert to stateless widget
 class RegisterPage extends StatelessWidget {
   final VoidCallback onRegistrationComplete;
 
@@ -21,7 +23,6 @@ class RegisterPage extends StatelessWidget {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // Gradient Header
             Container(
               height: 120.h,
               decoration: const BoxDecoration(
@@ -48,7 +49,6 @@ class RegisterPage extends StatelessWidget {
                 ),
               ),
             ),
-            // Extract the form to a separate stateful widget
             RegisterForm(onRegistrationComplete: onRegistrationComplete),
           ],
         ),
@@ -57,7 +57,6 @@ class RegisterPage extends StatelessWidget {
   }
 }
 
-// New stateful widget for the form
 class RegisterForm extends StatefulWidget {
   final VoidCallback onRegistrationComplete;
 
@@ -82,13 +81,23 @@ class _RegisterFormState extends State<RegisterForm> {
   final _semesterController = TextEditingController();
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
-  // Add new state variables for semester type and shift
   bool _isBiSemester = true;
   bool _isDayShift = true;
+  final List<String> _bloodGroups = [
+    'A+',
+    'A-',
+    'B+',
+    'B-',
+    'O+',
+    'O-',
+    'AB+',
+    'AB-'
+  ];
+  String? _selectedBloodGroup;
+  File? _idCardImage;
 
   @override
   void dispose() {
-    // Clean up controllers
     _emailController.dispose();
     _passwordController.dispose();
     _firstNameController.dispose();
@@ -125,7 +134,6 @@ class _RegisterFormState extends State<RegisterForm> {
   }
 
   bool _validateInputs(BuildContext context) {
-    // ...existing validation code...
     if (_emailController.text.trim().isEmpty) {
       _showError(context, 'Please enter your email');
       return false;
@@ -179,6 +187,61 @@ class _RegisterFormState extends State<RegisterForm> {
         _confirmPasswordController.text.trim();
   }
 
+  Future<void> _pickIdCardImage() async {
+    try {
+      final status = await Permission.storage.request();
+      final cameraStatus = await Permission.camera.request();
+
+      if (status.isDenied || cameraStatus.isDenied) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Permission denied to access photos')),
+        );
+        return;
+      }
+
+      final source = await showDialog<ImageSource>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('Select Image Source'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: Icon(Icons.camera_alt),
+                title: Text('Camera'),
+                onTap: () => Navigator.pop(context, ImageSource.camera),
+              ),
+              ListTile(
+                leading: Icon(Icons.photo_library),
+                title: Text('Gallery'),
+                onTap: () => Navigator.pop(context, ImageSource.gallery),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      if (source == null) return;
+
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(
+        source: source,
+        imageQuality: 70,
+        maxWidth: 1000,
+      );
+
+      if (pickedFile != null) {
+        setState(() {
+          _idCardImage = File(pickedFile.path);
+        });
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error picking image: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -186,7 +249,6 @@ class _RegisterFormState extends State<RegisterForm> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Form fields with updated styling
           _buildFormFields(),
           SizedBox(height: 30.h),
           RegisterButton(
@@ -196,10 +258,8 @@ class _RegisterFormState extends State<RegisterForm> {
               try {
                 await FirebaseAuth.instance.signOut();
 
-                // Generate user ID
                 String userId = await _generateUserId();
 
-                // Create auth user
                 final userCredential =
                     await FirebaseAuth.instance.createUserWithEmailAndPassword(
                   email: _emailController.text.trim(),
@@ -210,7 +270,12 @@ class _RegisterFormState extends State<RegisterForm> {
                   throw Exception('User creation failed');
                 }
 
-                // Create Firestore document
+                String? idCardBase64;
+                if (_idCardImage != null) {
+                  final bytes = await _idCardImage!.readAsBytes();
+                  idCardBase64 = base64Encode(bytes);
+                }
+
                 await FirebaseFirestore.instance
                     .collection('users')
                     .doc(userCredential.user!.uid)
@@ -231,9 +296,10 @@ class _RegisterFormState extends State<RegisterForm> {
                   'isEmailVerified': false,
                   'profilePicture': null,
                   'createdAt': FieldValue.serverTimestamp(),
+                  'bloodGroup': _selectedBloodGroup,
+                  'idCardImage': idCardBase64,
                 });
 
-                // Send verification email
                 await userCredential.user!.sendEmailVerification();
                 await FirebaseAuth.instance.signOut();
 
@@ -257,7 +323,6 @@ class _RegisterFormState extends State<RegisterForm> {
             },
           ),
           SizedBox(height: 20.h),
-          // Login link
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -288,7 +353,6 @@ class _RegisterFormState extends State<RegisterForm> {
   }
 
   Widget _buildFormFields() {
-    // ...existing form fields code...
     return Column(
       children: [
         Row(
@@ -360,7 +424,6 @@ class _RegisterFormState extends State<RegisterForm> {
           keyboardType: TextInputType.number,
         ),
         SizedBox(height: 15.h),
-        // Add toggle switches for semester type and shift
         Row(
           children: [
             _buildSwitchField(
@@ -381,6 +444,90 @@ class _RegisterFormState extends State<RegisterForm> {
               },
               trueLabel: "Day",
               falseLabel: "Evening",
+            ),
+          ],
+        ),
+        SizedBox(height: 15.h),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Blood Group",
+              style: TextStyle(
+                color: Coloris.text_color,
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            SizedBox(height: 8.h),
+            Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: Coloris.text_color.withOpacity(0.2)),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: DropdownButtonFormField<String>(
+                value: _selectedBloodGroup,
+                decoration: InputDecoration(
+                  contentPadding: EdgeInsets.symmetric(horizontal: 15.w),
+                  border: InputBorder.none,
+                ),
+                hint: Text("Select Blood Group"),
+                items: _bloodGroups.map((String group) {
+                  return DropdownMenuItem<String>(
+                    value: group,
+                    child: Text(group),
+                  );
+                }).toList(),
+                onChanged: (String? newValue) {
+                  setState(() {
+                    _selectedBloodGroup = newValue;
+                  });
+                },
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 15.h),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Upload DIU ID Card",
+              style: TextStyle(
+                color: Coloris.text_color,
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            SizedBox(height: 8.h),
+            GestureDetector(
+              onTap: _pickIdCardImage,
+              child: Container(
+                height: 150.h,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  border:
+                      Border.all(color: Coloris.text_color.withOpacity(0.2)),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: _idCardImage != null
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: Image.file(_idCardImage!, fit: BoxFit.cover),
+                      )
+                    : Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.add_photo_alternate,
+                              size: 50.sp, color: Colors.grey),
+                          SizedBox(height: 10.h),
+                          Text(
+                            "Upload ID Card Image",
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        ],
+                      ),
+              ),
             ),
           ],
         ),
@@ -411,7 +558,6 @@ class _RegisterFormState extends State<RegisterForm> {
     );
   }
 
-  // Add a new method for building switch fields
   Widget _buildSwitchField({
     required String label,
     required bool value,
@@ -461,7 +607,6 @@ class _RegisterFormState extends State<RegisterForm> {
     bool isPassword = false,
     TextInputType? keyboardType,
   }) {
-    // Determine which password visibility state to use
     bool isObscured = isPassword;
     if (isPassword) {
       isObscured = controller == _passwordController
@@ -469,7 +614,6 @@ class _RegisterFormState extends State<RegisterForm> {
           : _obscureConfirmPassword;
     }
 
-    // Add text transformation for registration number and department name
     TextCapitalization capitalization = TextCapitalization.none;
     if (controller == _registrationNumberController ||
         controller == _departmentController) {
@@ -557,7 +701,6 @@ class _RegisterFormState extends State<RegisterForm> {
   }
 }
 
-// Keep the RegisterButton as is
 class RegisterButton extends StatefulWidget {
   final Function onRegister;
   final Map<String, TextEditingController> controllers;

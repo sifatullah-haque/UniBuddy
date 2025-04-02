@@ -14,6 +14,7 @@ import 'package:diu/pages/home_page/Personal_Data/personal_data.dart';
 import 'package:diu/pages/home_page/Support/Support.dart';
 import 'package:diu/pages/home_page/Volunteer/volunteer.dart';
 import 'package:diu/pages/home_page/calendar/calendar.dart';
+import 'package:diu/pages/home_page/chat/chat.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -61,7 +62,7 @@ class _GridviewWithIconsState extends State<GridviewWithIcons> {
       {
         "title": "Create Class",
         "icon": "IDEA",
-        "destination": CreateClassSchedule(),
+        "destination": Chat(),
       },
       {
         "title": "Certificates",

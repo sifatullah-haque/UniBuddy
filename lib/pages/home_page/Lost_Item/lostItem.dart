@@ -91,6 +91,7 @@ class _LostItemState extends State<LostItem> {
       final cameraStatus = await Permission.camera.request();
 
       if (status.isDenied || cameraStatus.isDenied) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Permission denied to access photos')),
         );
@@ -122,21 +123,20 @@ class _LostItemState extends State<LostItem> {
       if (source == null) return;
 
       final picker = ImagePicker();
-      final pickedFile = await picker.pickImage(
+      final XFile? pickedFile = await picker.pickImage(
         source: source,
         imageQuality: 70,
         maxWidth: 1000,
       );
 
-      if (pickedFile != null) {
+      if (pickedFile != null && mounted) {
         setState(() {
           _selectedImage = File(pickedFile.path);
         });
-        // Force rebuild to show image immediately
-        if (mounted) setState(() {});
       }
     } catch (e) {
       print("Error picking image: $e");
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error picking image: $e')),
       );
@@ -214,6 +214,48 @@ class _LostItemState extends State<LostItem> {
     }
   }
 
+  void _showLoadingOverlay() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return WillPopScope(
+          onWillPop: () async => false,
+          child: Material(
+            color: Colors.transparent,
+            child: Center(
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(
+                      valueColor:
+                          AlwaysStoppedAnimation<Color>(Color(0xff6686F6)),
+                    ),
+                    SizedBox(height: 15.h),
+                    Text(
+                      'Creating lost item alert...',
+                      style: TextStyle(
+                        color: Color(0xff6686F6),
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _createLostItem() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedDate == null) {
@@ -223,9 +265,10 @@ class _LostItemState extends State<LostItem> {
       return;
     }
 
-    setState(() => _isLoading = true);
-
     try {
+      setState(() => _isLoading = true);
+      _showLoadingOverlay(); // Show loading overlay
+
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) throw Exception('User not logged in');
 
@@ -245,7 +288,7 @@ class _LostItemState extends State<LostItem> {
         lostBy: _lostByController.text,
         batchName: _batchNameController.text,
         dateLost: _selectedDate!,
-        imageBase64: imageBase64, // Use imageBase64 instead of imageUrl
+        imageBase64: imageBase64,
       );
 
       // Add to Firestore
@@ -253,7 +296,7 @@ class _LostItemState extends State<LostItem> {
           .collection('lostItems')
           .add(lostItem.toMap());
 
-      // Send notifications to all users
+      // Send notifications
       await _sendNotificationToAllUsers(
         title: 'New Lost Item Report',
         message:
@@ -263,9 +306,10 @@ class _LostItemState extends State<LostItem> {
       );
 
       if (!mounted) return;
-      Navigator.pop(context);
+      Navigator.pop(context); // Close loading overlay
+      Navigator.pop(context); // Close create item dialog
 
-      // Clear all fields including the image
+      // Clear form
       _titleController.clear();
       _locationController.clear();
       _contactController.clear();
@@ -276,6 +320,7 @@ class _LostItemState extends State<LostItem> {
       setState(() {
         _selectedImage = null;
         _selectedDate = null;
+        _isLoading = false;
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -285,11 +330,16 @@ class _LostItemState extends State<LostItem> {
         ),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error creating lost item: $e')),
-      );
+      if (mounted) {
+        Navigator.pop(context); // Close loading overlay
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error creating lost item: $e')),
+        );
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -379,107 +429,12 @@ class _LostItemState extends State<LostItem> {
 
     final result = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Found Item Details'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _foundByController,
-              decoration: InputDecoration(
-                labelText: 'Found By',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            SizedBox(height: 10),
-            TextField(
-              controller: _foundByBatchController,
-              decoration: InputDecoration(
-                labelText: 'Batch No.',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            SizedBox(height: 10),
-            TextField(
-              controller: _foundByContactController,
-              decoration: InputDecoration(
-                labelText: 'Contact Number',
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.phone,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text('Submit'),
-          ),
-        ],
-      ),
-    );
-
-    if (result == true) {
-      try {
-        // Update item status
-        await FirebaseFirestore.instance
-            .collection('lostItems')
-            .doc(itemId)
-            .update({
-          'isFound': true,
-          'foundBy': _foundByController.text,
-          'foundByBatch': _foundByBatchController.text,
-          'foundByContact': _foundByContactController.text,
-        });
-
-        // Create notification
-        await FirebaseFirestore.instance.collection('notifications').add({
-          'userId': ownerId,
-          'title': 'Item Found!',
-          'message':
-              '${_foundByController.text} found your item. Contact: ${_foundByContactController.text}',
-          'timestamp': FieldValue.serverTimestamp(), // Use server timestamp
-          'isRead': false,
-          'type': 'found_item',
-          'relatedItemId': itemId,
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Item marked as found and owner notified')),
-        );
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error updating item status: $e')),
-        );
-      }
-    }
-  }
-
-  void _showCreateItemDialog() {
-    _loadUserData();
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        // Get keyboard visibility status
-        final bool isKeyboardVisible =
-            MediaQuery.of(context).viewInsets.bottom > 0;
-        final double screenHeight = MediaQuery.of(context).size.height;
-
-        return Dialog(
+      builder: (context) => Material(
+        color: Colors.transparent,
+        child: Dialog(
           backgroundColor: Colors.transparent,
           insetPadding: EdgeInsets.symmetric(horizontal: 20.w),
           child: Container(
-            constraints: BoxConstraints(
-              maxHeight: isKeyboardVisible
-                  ? screenHeight *
-                      0.5 // Smaller height when keyboard is visible
-                  : screenHeight * 0.7, // Normal height when keyboard is hidden
-            ),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(20),
@@ -506,7 +461,7 @@ class _LostItemState extends State<LostItem> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Create Lost Item Alert',
+                        'Found Item Details',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 18.sp,
@@ -514,7 +469,7 @@ class _LostItemState extends State<LostItem> {
                         ),
                       ),
                       IconButton(
-                        onPressed: () => Navigator.pop(context),
+                        onPressed: () => Navigator.pop(context, false),
                         icon: Icon(
                           Icons.close,
                           color: Colors.white,
@@ -527,87 +482,269 @@ class _LostItemState extends State<LostItem> {
                   ),
                 ),
                 // Form content
-                Expanded(
-                  child: Form(
-                    key: _formKey,
-                    child: SingleChildScrollView(
-                      physics: BouncingScrollPhysics(),
-                      child: Padding(
-                        padding: EdgeInsets.all(20.w),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (!isKeyboardVisible) ...[
-                              _buildImagePicker(),
-                              SizedBox(height: 16.h),
+                Padding(
+                  padding: EdgeInsets.all(20.w),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildFormField(
+                        controller: _foundByController,
+                        labelText: 'Found By',
+                      ),
+                      SizedBox(height: 12.h),
+                      _buildFormField(
+                        controller: _foundByBatchController,
+                        labelText: 'Batch No.',
+                      ),
+                      SizedBox(height: 12.h),
+                      _buildFormField(
+                        controller: _foundByContactController,
+                        labelText: 'Contact Number',
+                        keyboardType: TextInputType.phone,
+                      ),
+                      SizedBox(height: 20.h),
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context, true),
+                        child: Container(
+                          width: double.infinity,
+                          height: 50.h,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xff6686F6), Color(0xff60BBEF)],
+                            ),
+                            borderRadius: BorderRadius.circular(15),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Color(0xff6686F6).withOpacity(0.3),
+                                spreadRadius: 1,
+                                blurRadius: 8,
+                                offset: Offset(0, 3),
+                              ),
                             ],
-                            // Rest of your form fields
-                            _buildSectionTitle("User Information"),
-                            _buildFormField(
-                              controller: _lostByController,
-                              labelText: 'Item Lost By',
-                              enabled: false,
+                          ),
+                          child: Center(
+                            child: Text(
+                              "Submit",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
-                            SizedBox(height: 12.h),
-
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: _buildFormField(
-                                    controller: _batchNameController,
-                                    labelText: 'Batch',
-                                    enabled: false,
-                                  ),
-                                ),
-                                SizedBox(width: 10.w),
-                                Expanded(
-                                  child: _buildFormField(
-                                    controller: _contactController,
-                                    labelText: 'Contact',
-                                    enabled: false,
-                                  ),
-                                ),
-                              ],
-                            ),
-
-                            SizedBox(height: 20.h),
-                            _buildSectionTitle("Item Information"),
-                            _buildFormField(
-                              controller: _titleController,
-                              labelText: 'Item Name*',
-                              validator: (value) => value?.isEmpty ?? true
-                                  ? 'Required field'
-                                  : null,
-                            ),
-                            SizedBox(height: 12.h),
-                            _buildDatePicker(),
-                            SizedBox(height: 12.h),
-                            _buildFormField(
-                              controller: _locationController,
-                              labelText: 'Location Lost*',
-                              validator: (value) => value?.isEmpty ?? true
-                                  ? 'Required field'
-                                  : null,
-                            ),
-                            SizedBox(height: 12.h),
-                            _buildFormField(
-                              controller: _descriptionController,
-                              labelText: 'Description',
-                              maxLines: 3,
-                            ),
-                            SizedBox(height: 20.h),
-
-                            _buildSubmitButton(),
-                            SizedBox(height: 10.h),
-                          ],
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
+        ),
+      ),
+    );
+
+    if (result == true) {
+      try {
+        // Update item status
+        await FirebaseFirestore.instance
+            .collection('lostItems')
+            .doc(itemId)
+            .update({
+          'isFound': true,
+          'foundBy': _foundByController.text,
+          'foundByBatch': _foundByBatchController.text,
+          'foundByContact': _foundByContactController.text,
+        });
+
+        // Create notification
+        await FirebaseFirestore.instance.collection('notifications').add({
+          'userId': ownerId,
+          'title': 'Item Found!',
+          'message':
+              '${_foundByController.text} found your item. Contact: ${_foundByContactController.text}',
+          'timestamp': FieldValue.serverTimestamp(),
+          'isRead': false,
+          'type': 'found_item',
+          'relatedItemId': itemId,
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Item marked as found and owner notified')),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error updating item status: $e')),
+        );
+      }
+    }
+  }
+
+  void _showCreateItemDialog() {
+    _loadUserData();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            // Get keyboard visibility status
+            final bool isKeyboardVisible =
+                MediaQuery.of(context).viewInsets.bottom > 0;
+            final double screenHeight = MediaQuery.of(context).size.height;
+
+            return Dialog(
+              backgroundColor: Colors.transparent,
+              insetPadding: EdgeInsets.symmetric(horizontal: 20.w),
+              child: Container(
+                constraints: BoxConstraints(
+                  maxHeight: isKeyboardVisible
+                      ? screenHeight *
+                          0.5 // Smaller height when keyboard is visible
+                      : screenHeight *
+                          0.7, // Normal height when keyboard is hidden
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Custom header
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 20.w, vertical: 15.h),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          colors: [Color(0xff6686F6), Color(0xff60BBEF)],
+                        ),
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(20),
+                          topRight: Radius.circular(20),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Create Lost Item Alert',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18.sp,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () => Navigator.pop(context),
+                            icon: Icon(
+                              Icons.close,
+                              color: Colors.white,
+                              size: 20.sp,
+                            ),
+                            padding: EdgeInsets.zero,
+                            constraints: BoxConstraints(),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Form content
+                    Expanded(
+                      child: Form(
+                        key: _formKey,
+                        child: SingleChildScrollView(
+                          physics: BouncingScrollPhysics(),
+                          child: Padding(
+                            padding: EdgeInsets.all(20.w),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (!isKeyboardVisible) ...[
+                                  StatefulBuilder(
+                                    builder: (context, setImageState) {
+                                      return GestureDetector(
+                                        onTap: () async {
+                                          await _pickImage();
+                                          setImageState(
+                                              () {}); // Force rebuild image preview
+                                        },
+                                        child: _buildImagePicker(),
+                                      );
+                                    },
+                                  ),
+                                  SizedBox(height: 16.h),
+                                ],
+                                // Rest of your form fields
+                                _buildSectionTitle("User Information"),
+                                _buildFormField(
+                                  controller: _lostByController,
+                                  labelText: 'Item Lost By',
+                                  enabled: false,
+                                ),
+                                SizedBox(height: 12.h),
+
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: _buildFormField(
+                                        controller: _batchNameController,
+                                        labelText: 'Batch',
+                                        enabled: false,
+                                      ),
+                                    ),
+                                    SizedBox(width: 10.w),
+                                    Expanded(
+                                      child: _buildFormField(
+                                        controller: _contactController,
+                                        labelText: 'Contact',
+                                        enabled: false,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+
+                                SizedBox(height: 20.h),
+                                _buildSectionTitle("Item Information"),
+                                _buildFormField(
+                                  controller: _titleController,
+                                  labelText: 'Item Name*',
+                                  validator: (value) => value?.isEmpty ?? true
+                                      ? 'Required field'
+                                      : null,
+                                ),
+                                SizedBox(height: 12.h),
+                                _buildDatePicker(),
+                                SizedBox(height: 12.h),
+                                _buildFormField(
+                                  controller: _locationController,
+                                  labelText: 'Location Lost*',
+                                  validator: (value) => value?.isEmpty ?? true
+                                      ? 'Required field'
+                                      : null,
+                                ),
+                                SizedBox(height: 12.h),
+                                _buildFormField(
+                                  controller: _descriptionController,
+                                  labelText: 'Description',
+                                  maxLines: 3,
+                                ),
+                                SizedBox(height: 20.h),
+
+                                _buildSubmitButton(),
+                                SizedBox(height: 10.h),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
         );
       },
     );
@@ -740,11 +877,13 @@ class _LostItemState extends State<LostItem> {
     bool enabled = true,
     int maxLines = 1,
     String? Function(String?)? validator,
+    TextInputType keyboardType = TextInputType.text,
   }) {
     return TextFormField(
       controller: controller,
       enabled: enabled,
       maxLines: maxLines,
+      keyboardType: keyboardType,
       style: TextStyle(
         fontSize: 14.sp,
         color: enabled ? Coloris.text_color : Colors.grey[700],
@@ -837,23 +976,14 @@ class _LostItemState extends State<LostItem> {
           ],
         ),
         child: Center(
-          child: _isLoading
-              ? SizedBox(
-                  height: 20.h,
-                  width: 20.h,
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 2,
-                  ),
-                )
-              : Text(
-                  _isLoadingUserData ? "Loading..." : "Create Lost Item Alert",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+          child: Text(
+            "Create Lost Item Alert",
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ),
       ),
     );

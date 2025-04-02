@@ -36,7 +36,8 @@ class _ChatDetailState extends State<ChatDetail> {
     if (user != null) {
       final userData = await _firestore.collection('users').doc(user.uid).get();
 
-      if (userData.exists) {
+      if (userData.exists && mounted) {
+        // Add mounted check here
         setState(() {
           _currentUserFirstName = userData.data()?['firstName'];
           _currentUserId = userData.data()?['userId'];
@@ -123,59 +124,133 @@ class _ChatDetailState extends State<ChatDetail> {
   Widget _buildMessageBubble(Message message) {
     final isMe = message.senderId == _auth.currentUser!.uid;
 
-    return Align(
-      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: EdgeInsets.symmetric(vertical: 5.h, horizontal: 10.w),
-        padding: EdgeInsets.symmetric(vertical: 10.h, horizontal: 15.w),
-        decoration: BoxDecoration(
-          gradient: isMe
-              ? const LinearGradient(
-                  colors: [Color(0xff6686F6), Color(0xff60BBEF)],
-                )
-              : null,
-          color: isMe ? null : Colors.white,
-          borderRadius: BorderRadius.circular(15),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              spreadRadius: 1,
-              blurRadius: 6,
-              offset: const Offset(0, 1),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment:
-              isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-          children: [
-            if (!isMe)
+    return GestureDetector(
+      onLongPress: isMe ? () => _showEditDialog(message) : null,
+      child: Align(
+        alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+        child: Container(
+          margin: EdgeInsets.symmetric(vertical: 5.h, horizontal: 10.w),
+          padding: EdgeInsets.symmetric(vertical: 10.h, horizontal: 15.w),
+          decoration: BoxDecoration(
+            gradient: isMe
+                ? const LinearGradient(
+                    colors: [Color(0xff6686F6), Color(0xff60BBEF)],
+                  )
+                : null,
+            color: isMe ? null : Colors.white,
+            borderRadius: BorderRadius.circular(15),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.1),
+                spreadRadius: 1,
+                blurRadius: 6,
+                offset: const Offset(0, 1),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment:
+                isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+            children: [
+              if (!isMe)
+                Text(
+                  "${message.senderName} (${message.senderUserId})",
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
               Text(
-                "${message.senderName} (${message.senderUserId})",
+                message.text,
                 style: TextStyle(
-                  fontSize: 12.sp,
-                  color: Colors.grey[600],
-                  fontWeight: FontWeight.w500,
+                  color: isMe ? Colors.white : Colors.black87,
+                  fontSize: 14.sp,
                 ),
               ),
-            Text(
-              message.text,
-              style: TextStyle(
-                color: isMe ? Colors.white : Colors.black87,
-                fontSize: 14.sp,
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _formatTime(message.timestamp),
+                    style: TextStyle(
+                      fontSize: 10.sp,
+                      color: isMe ? Colors.white70 : Colors.grey[600],
+                    ),
+                  ),
+                  if (message.isEdited)
+                    Text(
+                      ' • edited',
+                      style: TextStyle(
+                        fontSize: 10.sp,
+                        color: isMe ? Colors.white70 : Colors.grey[600],
+                      ),
+                    ),
+                ],
               ),
-            ),
-            Text(
-              _formatTime(message.timestamp),
-              style: TextStyle(
-                fontSize: 10.sp,
-                color: isMe ? Colors.white70 : Colors.grey[600],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  void _showEditDialog(Message message) async {
+    final TextEditingController editController =
+        TextEditingController(text: message.text);
+
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Message'),
+        content: TextField(
+          controller: editController,
+          decoration: const InputDecoration(
+            hintText: 'Edit your message...',
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              final editedText = editController.text.trim();
+              if (editedText.isNotEmpty && editedText != message.text) {
+                await _updateMessage(message, editedText);
+              }
+              Navigator.pop(context);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _updateMessage(Message message, String newText) async {
+    final querySnapshot = await _firestore
+        .collection('communities')
+        .doc(widget.communityName)
+        .collection('messages')
+        .where('timestamp', isEqualTo: Timestamp.fromDate(message.timestamp))
+        .where('senderId', isEqualTo: message.senderId)
+        .get();
+
+    if (querySnapshot.docs.isNotEmpty) {
+      final docId = querySnapshot.docs.first.id;
+      await _firestore
+          .collection('communities')
+          .doc(widget.communityName)
+          .collection('messages')
+          .doc(docId)
+          .update({
+        'text': newText,
+        'isEdited': true,
+      });
+    }
   }
 
   Widget _buildMessageInput() {

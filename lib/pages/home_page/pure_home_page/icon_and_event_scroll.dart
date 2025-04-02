@@ -42,26 +42,35 @@ class IconsAndEventScroll extends StatelessWidget {
                     child: Image.asset("assets/logos/CPC.png"),
                   ),
                 ),
-                CircleAvatar(
-                  radius: 55.h,
-                  backgroundColor: Colors.transparent,
-                  child: Image.asset("assets/logos/CDS.png"),
+                GestureDetector(
+                  onTap: () => _showNotMemberDialog(context),
+                  child: CircleAvatar(
+                    radius: 55.h,
+                    backgroundColor: Colors.transparent,
+                    child: Image.asset("assets/logos/CDS.png"),
+                  ),
                 ),
                 SizedBox(
                   width: 7.w,
                 ),
-                CircleAvatar(
-                  radius: 45.h,
-                  backgroundColor: Colors.transparent,
-                  child: Image.asset("assets/logos/FPC.png"),
+                GestureDetector(
+                  onTap: () => _showNotMemberDialog(context),
+                  child: CircleAvatar(
+                    radius: 45.h,
+                    backgroundColor: Colors.transparent,
+                    child: Image.asset("assets/logos/FPC.png"),
+                  ),
                 ),
                 SizedBox(
                   width: 5.w,
                 ),
-                CircleAvatar(
-                  radius: 45.h,
-                  backgroundColor: Colors.transparent,
-                  child: Image.asset("assets/logos/DIU.png"),
+                GestureDetector(
+                  onTap: () => _showNotMemberDialog(context),
+                  child: CircleAvatar(
+                    radius: 45.h,
+                    backgroundColor: Colors.transparent,
+                    child: Image.asset("assets/logos/DIU.png"),
+                  ),
                 ),
               ],
             ),
@@ -173,6 +182,50 @@ class IconsAndEventScroll extends StatelessWidget {
                 child: Icon(Icons.image),
               ),
       ),
+    );
+  }
+
+  void _showNotMemberDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.warning_amber_rounded,
+                size: 64,
+                color: Colors.amber,
+              ),
+              SizedBox(height: 16),
+              Text(
+                "This club is not a member of this app yet.",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 8),
+              Text(
+                "We're working on adding more clubs to the app. Please check back later.",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              child: Text("OK"),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ],
+        );
+      },
     );
   }
 }

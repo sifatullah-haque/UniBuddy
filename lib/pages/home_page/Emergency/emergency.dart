@@ -20,6 +20,48 @@ class _EmergencyState extends State<Emergency> {
   final _contactController = TextEditingController(); // Add contact controller
   bool _isLoading = false;
 
+  void _showLoadingOverlay() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return WillPopScope(
+          onWillPop: () async => false,
+          child: Material(
+            color: Colors.transparent,
+            child: Center(
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(
+                      valueColor:
+                          AlwaysStoppedAnimation<Color>(Color(0xff6686F6)),
+                    ),
+                    SizedBox(height: 15.h),
+                    Text(
+                      'Creating emergency alert...',
+                      style: TextStyle(
+                        color: Color(0xff6686F6),
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _createAlert() async {
     if (!mounted) return;
 
@@ -27,7 +69,6 @@ class _EmergencyState extends State<Emergency> {
         _descriptionController.text.isEmpty ||
         _locationController.text.isEmpty ||
         _contactController.text.isEmpty) {
-      // Add validation for contact
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill all fields')),
       );
@@ -35,6 +76,7 @@ class _EmergencyState extends State<Emergency> {
     }
 
     setState(() => _isLoading = true);
+    _showLoadingOverlay(); // Show loading overlay
 
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -77,15 +119,16 @@ class _EmergencyState extends State<Emergency> {
       _locationController.clear();
       _contactController.clear(); // Clear contact field
 
-      // Close the dialog first
-      Navigator.of(context).pop();
+      Navigator.pop(context); // Close loading overlay
+      Navigator.pop(context); // Close dialog box
 
-      // Show success message after dialog is closed
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Emergency alert created successfully')),
       );
     } catch (e) {
       if (!mounted) return;
+
+      Navigator.pop(context); // Close loading overlay
 
       String errorMessage = 'Error creating alert';
       if (e.toString().contains('permission-denied')) {
@@ -143,6 +186,225 @@ class _EmergencyState extends State<Emergency> {
     }
   }
 
+  void _showCreateEmergencyDialog() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    String emergencyOf = '';
+    String contactNumber = '';
+
+    try {
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      if (userDoc.exists) {
+        final userData = userDoc.data()!;
+        emergencyOf = '${userData['firstName']} ${userData['lastName']}';
+        contactNumber = userData['phoneNo'] ?? '';
+      }
+    } catch (e) {
+      print('Error loading user data: $e');
+    }
+
+    _contactController.text = contactNumber;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            final bool isKeyboardVisible =
+                MediaQuery.of(context).viewInsets.bottom > 0;
+            final double screenHeight = MediaQuery.of(context).size.height;
+
+            return Dialog(
+              backgroundColor: Colors.transparent,
+              insetPadding: EdgeInsets.symmetric(horizontal: 20.w),
+              child: Container(
+                constraints: BoxConstraints(
+                  maxHeight: isKeyboardVisible
+                      ? screenHeight * 0.5
+                      : screenHeight * 0.6,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Custom header
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 20.w, vertical: 15.h),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          colors: [Color(0xff6686F6), Color(0xff60BBEF)],
+                        ),
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(20),
+                          topRight: Radius.circular(20),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Create Emergency Alert',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18.sp,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () => Navigator.pop(context),
+                            icon: Icon(
+                              Icons.close,
+                              color: Colors.white,
+                              size: 20.sp,
+                            ),
+                            padding: EdgeInsets.zero,
+                            constraints: BoxConstraints(),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Form content
+                    Expanded(
+                      child: SingleChildScrollView(
+                        physics: BouncingScrollPhysics(),
+                        child: Padding(
+                          padding: EdgeInsets.all(20.w),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildFormField(
+                                controller:
+                                    TextEditingController(text: emergencyOf),
+                                labelText: 'Emergency Of',
+                                enabled: false,
+                              ),
+                              SizedBox(height: 12.h),
+                              _buildFormField(
+                                controller: _contactController,
+                                labelText: 'Contact Number',
+                                keyboardType: TextInputType.phone,
+                              ),
+                              SizedBox(height: 12.h),
+                              _buildFormField(
+                                controller: _locationController,
+                                labelText: 'Location',
+                              ),
+                              SizedBox(height: 12.h),
+                              _buildFormField(
+                                controller: _titleController,
+                                labelText: 'Title',
+                              ),
+                              SizedBox(height: 12.h),
+                              _buildFormField(
+                                controller: _descriptionController,
+                                labelText: 'Description',
+                                maxLines: 3,
+                              ),
+                              SizedBox(height: 15.h), // Reduced spacing
+                              _buildSubmitButton(),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildFormField({
+    required TextEditingController controller,
+    required String labelText,
+    bool enabled = true,
+    int maxLines = 1,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    return TextFormField(
+      controller: controller,
+      enabled: enabled,
+      maxLines: maxLines,
+      keyboardType: keyboardType,
+      style: TextStyle(
+        fontSize: 14.sp,
+        color: enabled ? Coloris.text_color : Colors.grey[700],
+      ),
+      decoration: InputDecoration(
+        labelText: labelText,
+        labelStyle: TextStyle(
+          color: Colors.grey[600],
+          fontSize: 14.sp,
+        ),
+        contentPadding: EdgeInsets.symmetric(horizontal: 15.w, vertical: 12.h),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: Colors.grey.withOpacity(0.3)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: Colors.grey.withOpacity(0.3)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: Color(0xff6686F6), width: 1.5),
+        ),
+        filled: !enabled,
+        fillColor: enabled ? Colors.transparent : Colors.grey[100],
+      ),
+    );
+  }
+
+  Widget _buildSubmitButton() {
+    return GestureDetector(
+      onTap: _isLoading ? null : _createAlert,
+      child: Container(
+        width: double.infinity,
+        height: 50.h,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: _isLoading
+                ? [Colors.grey, Colors.grey.shade400]
+                : [Color(0xff6686F6), Color(0xff60BBEF)],
+          ),
+          borderRadius: BorderRadius.circular(15),
+          boxShadow: [
+            BoxShadow(
+              color: Color(0xff6686F6).withOpacity(0.3),
+              spreadRadius: 1,
+              blurRadius: 8,
+              offset: Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Center(
+          child: Text(
+            "Create Emergency Alert",
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -157,7 +419,8 @@ class _EmergencyState extends State<Emergency> {
           borderRadius: BorderRadius.circular(30),
         ),
         child: FloatingActionButton.extended(
-          onPressed: () => _showCreateAlertDialog(context),
+          onPressed:
+              _showCreateEmergencyDialog, // Updated to call the new dialog
           label: Text(
             'Create Emergency Alert',
             style: TextStyle(
@@ -357,91 +620,5 @@ class _EmergencyState extends State<Emergency> {
     } else {
       return '${difference.inDays} days ago';
     }
-  }
-
-  void _showCreateAlertDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          "Create Emergency Alert",
-          style: TextStyle(
-            fontSize: 20.sp,
-            fontWeight: FontWeight.w600,
-            color: Coloris.text_color,
-          ),
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: _titleController,
-                decoration: InputDecoration(
-                  labelText: "Title",
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-              ),
-              SizedBox(height: 15.h),
-              TextField(
-                controller: _contactController, // Add contact field
-                decoration: InputDecoration(
-                  labelText: "Contact Number",
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                keyboardType:
-                    TextInputType.phone, // Set keyboard type for phone
-              ),
-              SizedBox(height: 15.h),
-              TextField(
-                controller: _locationController,
-                decoration: InputDecoration(
-                  labelText: "Location",
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-              ),
-              SizedBox(height: 15.h),
-              TextField(
-                controller: _descriptionController,
-                maxLines: 3,
-                decoration: InputDecoration(
-                  labelText: "Description",
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text("Cancel", style: TextStyle(color: Colors.grey)),
-          ),
-          Container(
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xff6686F6), Color(0xff60BBEF)],
-              ),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: TextButton(
-              onPressed: _isLoading ? null : _createAlert,
-              child: Text(
-                _isLoading ? "Creating..." : "Create Alert",
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }

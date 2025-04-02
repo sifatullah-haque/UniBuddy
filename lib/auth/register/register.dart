@@ -294,7 +294,7 @@ class _RegisterFormState extends State<RegisterForm> {
                   'isDayShift': _isDayShift,
                   'email': _emailController.text.trim(),
                   'isEmailVerified': false,
-                  'profilePicture': null,
+                  'profilePicture': '',
                   'createdAt': FieldValue.serverTimestamp(),
                   'bloodGroup': _selectedBloodGroup,
                   'idCardImage': idCardBase64,

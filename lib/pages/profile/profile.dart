@@ -2,9 +2,57 @@ import 'package:diu/Constant/color_is.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:convert';
 
-class Profile extends StatelessWidget {
+class Profile extends StatefulWidget {
   const Profile({super.key});
+
+  @override
+  State<Profile> createState() => _ProfileState();
+}
+
+class _ProfileState extends State<Profile> {
+  final user = FirebaseAuth.instance.currentUser;
+  Map<String, dynamic>? userData;
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserData();
+  }
+
+  Future<void> _fetchUserData() async {
+    if (user != null) {
+      try {
+        final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user?.uid)
+            .get();
+
+        if (doc.exists) {
+          setState(() {
+            userData = doc.data();
+            isLoading = false;
+          });
+        } else {
+          setState(() {
+            isLoading = false;
+          });
+        }
+      } catch (e) {
+        print('Error fetching user data: $e');
+        setState(() {
+          isLoading = false;
+        });
+      }
+    } else {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -51,9 +99,62 @@ class Profile extends StatelessWidget {
   }
 
   Widget _buildProfileInfo() {
+    if (isLoading) {
+      return Container(
+        margin: EdgeInsets.all(20.w),
+        padding: EdgeInsets.all(20.w),
+        decoration: BoxDecoration(
+          color: Coloris.white,
+          borderRadius: BorderRadius.circular(15),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              spreadRadius: 1,
+              blurRadius: 10,
+              offset: const Offset(0, 1),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            CircleAvatar(
+              radius: 50.r,
+              backgroundColor: Colors.grey[200],
+              child: CircularProgressIndicator(),
+            ),
+            SizedBox(height: 15.h),
+            Container(
+              width: 150.w,
+              height: 20.h,
+              decoration: BoxDecoration(
+                color: Colors.grey[200],
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+            SizedBox(height: 5.h),
+            Container(
+              width: 80.w,
+              height: 16.h,
+              decoration: BoxDecoration(
+                color: Colors.grey[200],
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final String fullName = userData != null
+        ? "${userData!['firstName'] ?? ''} ${userData!['lastName'] ?? ''}"
+        : "User";
+    final String batchNo = userData != null ? userData!['batchNo'] ?? "" : "";
+    final String deptName = userData != null ? userData!['deptName'] ?? "" : "";
+    final String? profilePicture = userData?['profilePicture'];
+
     return Container(
       margin: EdgeInsets.all(20.w),
-      padding: EdgeInsets.all(20.w),
+      padding: EdgeInsets.symmetric(horizontal: 40.w, vertical: 20.h),
       decoration: BoxDecoration(
         color: Coloris.white,
         borderRadius: BorderRadius.circular(15),
@@ -70,11 +171,30 @@ class Profile extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 50.r,
-            backgroundImage: const AssetImage("assets/avatars/sifat.jpg"),
+            backgroundColor: Colors.grey[200],
+            child: profilePicture != null && profilePicture.isNotEmpty
+                ? ClipOval(
+                    child: Image.memory(
+                      base64Decode(profilePicture),
+                      fit: BoxFit.cover,
+                      width: 100.r,
+                      height: 100.r,
+                      errorBuilder: (context, error, stackTrace) => Icon(
+                        Icons.image_not_supported_outlined,
+                        size: 40.r,
+                        color: Colors.grey[400],
+                      ),
+                    ),
+                  )
+                : Icon(
+                    Icons.image_not_supported_outlined,
+                    size: 40.r,
+                    color: Colors.grey[400],
+                  ),
           ),
           SizedBox(height: 15.h),
           Text(
-            "Sifatullah Haque Sajeeb",
+            fullName,
             style: TextStyle(
               fontSize: 20.sp,
               fontWeight: FontWeight.w600,
@@ -83,7 +203,7 @@ class Profile extends StatelessWidget {
           ),
           SizedBox(height: 5.h),
           Text(
-            "D-78(A)",
+            batchNo,
             style: TextStyle(
               fontSize: 16.sp,
               color: Coloris.text_color.withOpacity(0.7),
@@ -91,7 +211,7 @@ class Profile extends StatelessWidget {
           ),
           SizedBox(height: 5.h),
           Text(
-            "Department of CSE",
+            "Department of $deptName",
             style: TextStyle(
               fontSize: 16.sp,
               color: Coloris.text_color.withOpacity(0.7),

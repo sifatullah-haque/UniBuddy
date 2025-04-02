@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:convert';
+import 'package:diu/pages/profile/personalInformation.dart';
 
 class Profile extends StatefulWidget {
   const Profile({super.key});
@@ -279,7 +280,18 @@ class _ProfileState extends State<Profile> {
         ],
       ),
       child: ListTile(
-        onTap: isLogout ? () => FirebaseAuth.instance.signOut() : null,
+        onTap: () {
+          if (isLogout) {
+            FirebaseAuth.instance.signOut();
+          } else if (title == "Personal Information") {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => PersonalInformation(),
+              ),
+            );
+          }
+        },
         leading: Icon(
           icon,
           color: isLogout ? Colors.red : const Color(0xff6686F6),

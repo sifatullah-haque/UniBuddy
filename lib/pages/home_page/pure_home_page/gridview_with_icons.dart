@@ -64,10 +64,11 @@ class _GridviewWithIconsState extends State<GridviewWithIcons> {
         "destination": CreateClassSchedule(),
       },
       {
-        "title": "Calendar",
-        "icon": "Calendar",
-        "destination": Calendar(),
+        "title": "Certificates",
+        "icon": "Daily_Streak",
+        "destination": Certificate(),
       },
+
       {
         "title": "Lost Item",
         "icon": "Support",
@@ -92,9 +93,9 @@ class _GridviewWithIconsState extends State<GridviewWithIcons> {
         "destination": JoinClub(),
       },
       {
-        "title": "Certificates",
-        "icon": "Certificates",
-        "destination": Certificate(),
+        "title": "Calendar",
+        "icon": "Calendar",
+        "destination": Calendar(),
       },
       {
         "title": "Volunteer",

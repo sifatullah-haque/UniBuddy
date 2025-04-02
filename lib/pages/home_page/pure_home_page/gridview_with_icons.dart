@@ -54,22 +54,16 @@ class _GridviewWithIconsState extends State<GridviewWithIcons> {
         "icon": "bus",
         "destination": BusSchedule(),
       },
-      // {
-      //   "title": "Ideas",
-      //   "icon": "IDEA",
-      //   "destination": Idea(),
-      // },
       {
-        "title": "Create Class",
+        "title": "Share Ideas",
         "icon": "IDEA",
-        "destination": Chat(),
+        "destination": Idea(),
       },
       {
         "title": "Certificates",
         "icon": "Daily_Streak",
         "destination": Certificate(),
       },
-
       {
         "title": "Lost Item",
         "icon": "Support",
@@ -83,46 +77,46 @@ class _GridviewWithIconsState extends State<GridviewWithIcons> {
     ],
     // Second Page
     [
-      {
-        "title": "Cafeteria",
-        "icon": "cafeteria",
-        "destination": Cafeteria(),
-      },
-      {
-        "title": "Join Club",
-        "icon": "Join_Club",
-        "destination": JoinClub(),
-      },
+      // {
+      //   "title": "Cafeteria",
+      //   "icon": "cafeteria",
+      //   "destination": Cafeteria(),
+      // },
+      // {
+      //   "title": "Join Club",
+      //   "icon": "Join_Club",
+      //   "destination": JoinClub(),
+      // },
       {
         "title": "Calendar",
         "icon": "Calendar",
         "destination": Calendar(),
       },
-      {
-        "title": "Volunteer",
-        "icon": "Volunteer",
-        "destination": Volunteer(),
-      },
-      {
-        "title": "Personal Data",
-        "icon": "Personal_Data",
-        "destination": PersonalData(),
-      },
-      {
-        "title": "Support",
-        "icon": "Support",
-        "destination": Support(),
-      },
-      {
-        "title": "Leaderboard",
-        "icon": "Leaderboard",
-        "destination": Leaderboard(),
-      },
-      {
-        "title": "Daily Streak",
-        "icon": "Daily_Streak",
-        "destination": DailyStreak(),
-      },
+      // {
+      //   "title": "Volunteer",
+      //   "icon": "Volunteer",
+      //   "destination": Volunteer(),
+      // },
+      // {
+      //   "title": "Personal Data",
+      //   "icon": "Personal_Data",
+      //   "destination": PersonalData(),
+      // },
+      // {
+      //   "title": "Support",
+      //   "icon": "Support",
+      //   "destination": Support(),
+      // },
+      // {
+      //   "title": "Leaderboard",
+      //   "icon": "Leaderboard",
+      //   "destination": Leaderboard(),
+      // },
+      // {
+      //   "title": "Daily Streak",
+      //   "icon": "Daily_Streak",
+      //   "destination": DailyStreak(),
+      // },
     ],
   ];
 

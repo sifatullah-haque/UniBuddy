@@ -1,6 +1,7 @@
 import 'package:diu/Constant/color_is.dart';
 import 'package:diu/Constant/common_button.dart';
 import 'package:diu/pages/home_page/pure_home_page/home_page.dart';
+import 'package:diu/pages/main_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -61,7 +62,7 @@ class JoinClubSuccess extends StatelessWidget {
             "assets/svg/joined_club.png",
             height: 200.h,
           ),
-          SizedBox(height: 40.h),
+          SizedBox(height: 30.h),
           Text(
             "Congratulations!",
             style: TextStyle(
@@ -70,7 +71,7 @@ class JoinClubSuccess extends StatelessWidget {
               color: Coloris.text_color,
             ),
           ),
-          SizedBox(height: 15.h),
+          SizedBox(height: 10.h),
           Text(
             "Thank you for signing up! We'll be in touch soon with more information.",
             textAlign: TextAlign.center,
@@ -85,7 +86,7 @@ class JoinClubSuccess extends StatelessWidget {
             onTap: () {
               Navigator.pushAndRemoveUntil(
                 context,
-                MaterialPageRoute(builder: (context) => HomePage()),
+                MaterialPageRoute(builder: (context) => MainNavigation()),
                 (route) => false,
               );
             },

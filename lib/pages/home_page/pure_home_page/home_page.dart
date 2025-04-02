@@ -4,6 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:convert';
+import 'package:diu/providers/user_data_provider.dart';
 
 import 'gridview_with_icons.dart';
 import 'icon_and_event_scroll.dart';
@@ -23,38 +25,27 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    _fetchUserData();
+    _loadUserData();
+    UserDataProvider.addListener(_handleDataUpdate);
   }
 
-  Future<void> _fetchUserData() async {
-    if (user != null) {
-      try {
-        final doc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user?.uid)
-            .get();
+  void _handleDataUpdate() {
+    _loadUserData();
+  }
 
-        if (doc.exists) {
-          setState(() {
-            userData = doc.data();
-            isLoading = false;
-          });
-        } else {
-          setState(() {
-            isLoading = false;
-          });
-        }
-      } catch (e) {
-        print('Error fetching user data: $e');
-        setState(() {
-          isLoading = false;
-        });
-      }
-    } else {
-      setState(() {
-        isLoading = false;
-      });
-    }
+  @override
+  void dispose() {
+    UserDataProvider.removeListener(_handleDataUpdate);
+    super.dispose();
+  }
+
+  Future<void> _loadUserData() async {
+    setState(() => isLoading = true);
+    final data = await UserDataProvider.getUserData();
+    setState(() {
+      userData = data;
+      isLoading = false;
+    });
   }
 
   @override
@@ -124,7 +115,28 @@ class _HomePageState extends State<HomePage> {
       children: [
         CircleAvatar(
           radius: 40.0,
-          backgroundImage: AssetImage("assets/avatars/sifat.jpg"),
+          backgroundColor: Colors.grey[200],
+          child: userData != null &&
+                  userData!['profilePicture'] != null &&
+                  userData!['profilePicture'].isNotEmpty
+              ? ClipOval(
+                  child: Image.memory(
+                    base64Decode(userData!['profilePicture']),
+                    fit: BoxFit.cover,
+                    width: 80.0,
+                    height: 80.0,
+                    errorBuilder: (context, error, stackTrace) => Icon(
+                      Icons.image_not_supported_outlined,
+                      size: 40.0,
+                      color: Colors.grey[400],
+                    ),
+                  ),
+                )
+              : Icon(
+                  Icons.image_not_supported_outlined,
+                  size: 40.0,
+                  color: Colors.grey[400],
+                ),
         ),
         SizedBox(width: 20.w),
         isLoading ? _buildLoadingInfo() : _buildUserInfo(),

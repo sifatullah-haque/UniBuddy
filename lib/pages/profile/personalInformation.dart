@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:diu/Constant/color_is.dart';
 import 'package:diu/pages/main_navigation.dart';
+import 'package:diu/providers/user_data_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -175,10 +176,7 @@ class _PersonalInformationState extends State<PersonalInformation> {
 
     setState(() => isSaving = true);
     try {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user?.uid)
-          .update({
+      final updatedData = {
         'firstName': _firstNameController.text.trim(),
         'lastName': _lastNameController.text.trim(),
         'phoneNo': _phoneController.text.trim(),
@@ -193,7 +191,9 @@ class _PersonalInformationState extends State<PersonalInformation> {
         'bloodGroup': _selectedBloodGroup,
         'profilePicture': _profilePicture ?? '',
         'idCardImage': _idCardImage ?? '',
-      });
+      };
+
+      await UserDataProvider.updateUserData(updatedData);
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -202,7 +202,6 @@ class _PersonalInformationState extends State<PersonalInformation> {
         ),
       );
 
-      // Navigate back to profile and refresh
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => MainNavigation()),

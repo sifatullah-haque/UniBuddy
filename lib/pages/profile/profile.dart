@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:convert';
 import 'package:diu/pages/profile/personalInformation.dart';
+import 'package:diu/providers/user_data_provider.dart';
 
 class Profile extends StatefulWidget {
   const Profile({super.key});
@@ -21,38 +22,34 @@ class _ProfileState extends State<Profile> {
   @override
   void initState() {
     super.initState();
-    _fetchUserData();
+    _loadUserData();
+    UserDataProvider.addListener(_handleDataUpdate);
   }
 
-  Future<void> _fetchUserData() async {
-    if (user != null) {
-      try {
-        final doc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user?.uid)
-            .get();
+  void _handleDataUpdate() {
+    _loadUserData();
+  }
 
-        if (doc.exists) {
-          setState(() {
-            userData = doc.data();
-            isLoading = false;
-          });
-        } else {
-          setState(() {
-            isLoading = false;
-          });
-        }
-      } catch (e) {
-        print('Error fetching user data: $e');
-        setState(() {
-          isLoading = false;
-        });
-      }
-    } else {
-      setState(() {
-        isLoading = false;
-      });
-    }
+  @override
+  void dispose() {
+    UserDataProvider.removeListener(_handleDataUpdate);
+    super.dispose();
+  }
+
+  Future<void> _loadUserData() async {
+    setState(() => isLoading = true);
+    final data = await UserDataProvider.getUserData();
+    setState(() {
+      userData = data;
+      isLoading = false;
+    });
+  }
+
+  Future<void> _refreshData() async {
+    final data = await UserDataProvider.getUserData(forceRefresh: true);
+    setState(() {
+      userData = data;
+    });
   }
 
   @override

@@ -405,6 +405,54 @@ class _EmergencyState extends State<Emergency> {
     );
   }
 
+  void _handleCardTap(EmergencyAlert alert) {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null && currentUser.uid == alert.userId) {
+      _showDeleteConfirmation(alert);
+    }
+  }
+
+  void _showDeleteConfirmation(EmergencyAlert alert) {
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) => AlertDialog(
+        title: Text('Delete Emergency Alert'),
+        content: Text('Are you sure you want to delete this emergency alert?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              // Close dialog first
+              Navigator.pop(dialogContext);
+
+              // Then perform the delete operation
+              FirebaseFirestore.instance
+                  .collection('emergencyAlerts')
+                  .doc(alert.id)
+                  .delete()
+                  .then((_) {
+                scaffoldMessenger.showSnackBar(
+                  SnackBar(
+                      content: Text('Emergency alert deleted successfully')),
+                );
+              }).catchError((error) {
+                scaffoldMessenger.showSnackBar(
+                  SnackBar(content: Text('Error deleting alert: $error')),
+                );
+              });
+            },
+            child: Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -504,96 +552,100 @@ class _EmergencyState extends State<Emergency> {
   }
 
   Widget _buildAlertCard(EmergencyAlert alert) {
-    return Container(
-      margin: EdgeInsets.only(bottom: 15.h),
-      padding: EdgeInsets.all(15.w),
-      decoration: BoxDecoration(
-        color: Coloris.white,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 10,
-            offset: const Offset(0, 1),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.emergency, color: Coloris.primary_color, size: 24.sp),
-              SizedBox(width: 10.w),
-              Text(
-                alert.title,
-                style: TextStyle(
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.w600,
-                  color: Coloris.primary_color,
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 10.h),
-          Text(
-            alert.description,
-            style: TextStyle(
-              fontSize: 14.sp,
-              color: Coloris.text_color.withOpacity(0.7),
+    return GestureDetector(
+      onTap: () => _handleCardTap(alert),
+      child: Container(
+        margin: EdgeInsets.only(bottom: 15.h),
+        padding: EdgeInsets.all(15.w),
+        decoration: BoxDecoration(
+          color: Coloris.white,
+          borderRadius: BorderRadius.circular(15),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              spreadRadius: 1,
+              blurRadius: 10,
+              offset: const Offset(0, 1),
             ),
-          ),
-          SizedBox(height: 10.h),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  "Contact: ${alert.contact}",
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.emergency,
+                    color: Coloris.primary_color, size: 24.sp),
+                SizedBox(width: 10.w),
+                Text(
+                  alert.title,
+                  style: TextStyle(
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.w600,
+                    color: Coloris.primary_color,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 10.h),
+            Text(
+              alert.description,
+              style: TextStyle(
+                fontSize: 14.sp,
+                color: Coloris.text_color.withOpacity(0.7),
+              ),
+            ),
+            SizedBox(height: 10.h),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    "Contact: ${alert.contact}",
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      color: Coloris.text_color,
+                    ),
+                  ),
+                ),
+                InkWell(
+                  onTap: () => _copyToClipboard(alert.contact),
+                  child: Container(
+                    padding: EdgeInsets.all(5.w),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                    child: Icon(
+                      Icons.copy,
+                      color: Coloris.primary_color,
+                      size: 18.sp,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 5.h),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "Location: ${alert.location}",
                   style: TextStyle(
                     fontSize: 14.sp,
                     color: Coloris.text_color,
                   ),
                 ),
-              ),
-              InkWell(
-                onTap: () => _copyToClipboard(alert.contact),
-                child: Container(
-                  padding: EdgeInsets.all(5.w),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(5),
-                  ),
-                  child: Icon(
-                    Icons.copy,
-                    color: Coloris.primary_color,
-                    size: 18.sp,
+                Text(
+                  _getTimeAgo(alert.timestamp),
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    color: Coloris.text_color.withOpacity(0.5),
                   ),
                 ),
-              ),
-            ],
-          ),
-          SizedBox(height: 5.h),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                "Location: ${alert.location}",
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  color: Coloris.text_color,
-                ),
-              ),
-              Text(
-                _getTimeAgo(alert.timestamp),
-                style: TextStyle(
-                  fontSize: 12.sp,
-                  color: Coloris.text_color.withOpacity(0.5),
-                ),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

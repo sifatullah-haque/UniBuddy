@@ -33,9 +33,9 @@ class _IdeaState extends State<Idea> {
 
   final List<String> clubs = [
     'DIU Computer Programming Club',
-    'DIU Career Development Club',
-    'DIU Film & Photography Club',
-    'DIU Sports Club',
+    // 'DIU Career Development Club',
+    // 'DIU Film & Photography Club',
+    // 'DIU Sports Club',
   ];
 
   @override

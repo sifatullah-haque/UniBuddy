@@ -38,9 +38,9 @@ class _JoinClubState extends State<JoinClub> {
   // Dummy list of clubs - Replace with Firebase data later
   final List<String> clubs = [
     'DIU Computer Programming Club',
-    'DIU Career Development Club',
-    'DIU Film & Photography Club',
-    'DIU Sports Club',
+    // 'DIU Career Development Club',
+    // 'DIU Film & Photography Club',
+    // 'DIU Sports Club',
   ];
 
   @override
@@ -164,6 +164,70 @@ class _JoinClubState extends State<JoinClub> {
     }
   }
 
+  Future<bool> _checkIfAlreadyMember() async {
+    if (selectedClub == null) return false;
+
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) return false;
+
+      final snapshot = await FirebaseFirestore.instance
+          .collection('JoinClub')
+          .where('userId', isEqualTo: currentUser.uid)
+          .where('clubName', isEqualTo: selectedClub)
+          .where('status', whereIn: ['approved', 'pending']).get();
+
+      return snapshot.docs.isNotEmpty;
+    } catch (e) {
+      print('Error checking membership status: $e');
+      return false;
+    }
+  }
+
+  void _showAlreadyMemberDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.info_outline,
+                size: 64,
+                color: Colors.blue,
+              ),
+              SizedBox(height: 16),
+              Text(
+                "You're already a member of this club!",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 8),
+              Text(
+                "You already have a pending or approved membership for this club.",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              child: Text("OK"),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _submitForm() async {
     if (_formKey.currentState!.validate()) {
       // Validate club selection
@@ -174,14 +238,25 @@ class _JoinClubState extends State<JoinClub> {
         return;
       }
 
-      // Convert registration number to uppercase
-      final registrationNo = _registrationController.text.trim().toUpperCase();
-      _registrationController.text = registrationNo;
-
       // Show loading indicator
       setState(() {
         _isLoading = true;
       });
+
+      // Check if user is already a member of this club
+      bool isAlreadyMember = await _checkIfAlreadyMember();
+
+      if (isAlreadyMember) {
+        setState(() {
+          _isLoading = false;
+        });
+        _showAlreadyMemberDialog();
+        return;
+      }
+
+      // Convert registration number to uppercase
+      final registrationNo = _registrationController.text.trim().toUpperCase();
+      _registrationController.text = registrationNo;
 
       // Save data to Firebase
       bool success = await _saveToFirebase();
@@ -304,7 +379,8 @@ class _JoinClubState extends State<JoinClub> {
           children: [
             _buildDropdownField(),
             _buildInputField(
-                _nameController, "Full Name", "Enter your full name"),
+                _nameController, "Full Name", "Enter your full name",
+                enabled: false),
             _buildInputField(_userIdController, "User ID", "Your DIU ID",
                 enabled: false), // Add the new UserID field (disabled)
             _buildInputField(_emailController, "Email", "Enter your email",
@@ -314,16 +390,19 @@ class _JoinClubState extends State<JoinClub> {
               children: [
                 Expanded(
                   child: _buildInputField(_batchController, "Batch", "Ex: D-78",
-                      isHalfWidth: true),
+                      enabled: false, isHalfWidth: true),
                 ),
                 SizedBox(width: 10.w),
                 Expanded(
                   child: _buildInputField(_rollController, "Roll", "Ex: 10",
-                      isHalfWidth: true),
+                      enabled: false, isHalfWidth: true),
                 ),
               ],
             ),
-            _buildInputField(_registrationController, "Registration No.",
+            _buildInputField(
+                _registrationController,
+                "Registration No.",
+                enabled: false,
                 "Ex: CS-D-78-22-****"),
             Row(
               children: [
@@ -410,6 +489,9 @@ class _JoinClubState extends State<JoinClub> {
           ),
           child: DropdownButtonFormField<String>(
             value: selectedClub,
+            // style: TextStyle(
+            //   fontSize: 14.sp,
+            // ),
             decoration: InputDecoration(
               border: InputBorder.none,
               contentPadding:
@@ -428,7 +510,10 @@ class _JoinClubState extends State<JoinClub> {
             items: clubs.map((String club) {
               return DropdownMenuItem(
                 value: club,
-                child: Text(club),
+                child: Text(club,
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                    )),
               );
             }).toList(),
             onChanged: (String? value) {
@@ -474,6 +559,9 @@ class _JoinClubState extends State<JoinClub> {
             ),
             child: TextFormField(
               controller: controller,
+              style: TextStyle(
+                fontSize: 14.sp,
+              ),
               keyboardType: keyboardType,
               textCapitalization: isUppercaseField
                   ? TextCapitalization.characters

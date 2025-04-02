@@ -11,67 +11,107 @@ class DiuCpc extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Coloris.backgroundColor,
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20.0),
-        child: SafeArea(
+      body: Container(
+        color: Coloris.backgroundColor,
+        child: SingleChildScrollView(
           child: Column(
             children: [
-              Row(
-                children: [
-                  const CircleAvatar(
-                    radius: 45.0,
-                    backgroundColor: Colors.transparent,
-                    backgroundImage: AssetImage("assets/logos/CPC.png"),
-                  ),
-                  SizedBox(
-                    width: 10.w,
-                  ),
-                  Text(
-                    "DIU Computer & \nProgramming Community",
-                    style:
-                        TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w500),
-                  )
-                ],
-              ),
-              SizedBox(
-                height: 20.h,
-              ),
-              SizedBox(
-                height: 200.h,
-                width: double.infinity,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(
-                      10.0), // Adjust the radius as needed
-                  child: AnotherCarousel(
-                    images: const [
-                      AssetImage("assets/banner/specific_page/DOM.jpg"),
-                      AssetImage("assets/banner/specific_page/BOM.jpg"),
-                      AssetImage("assets/banner/specific_page/COM.jpg"),
-                      AssetImage("assets/banner/specific_page/LOM.jpg"),
-                    ],
-                    dotBgColor: Colors.transparent,
-                    dotColor: Coloris.primary_color,
-                    dotSize: 10.0,
-                    dotIncreasedColor: Colors.white,
-                  ),
-                ),
-              ),
-              SizedBox(
-                height: 40.h,
-              ),
-              SpecificPageGridviewWithIcons(),
+              _buildHeader(),
+              SizedBox(height: 20.h),
+              _buildCarousel(),
+              SizedBox(height: 30.h),
+              const SpecificPageGridviewWithIcons(),
             ],
           ),
         ),
       ),
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage("assets/svg/button_svg.png"),
-            fit: BoxFit.cover,
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      decoration: const BoxDecoration(
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(25.0),
+          bottomRight: Radius.circular(25.0),
+        ),
+        gradient: LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [Color(0xff6686F6), Color(0xff60BBEF)],
+        ),
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20.w),
+          child: Column(
+            children: [
+              SizedBox(height: 30.h),
+              _buildLogoAndClubInfo(),
+              SizedBox(height: 15.h),
+            ],
           ),
         ),
-        height: 120.h, // Adjust the height as needed
+      ),
+    );
+  }
+
+  Widget _buildLogoAndClubInfo() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.start,
+      children: [
+        const CircleAvatar(
+          radius: 40.0,
+          backgroundColor: Colors.transparent,
+          backgroundImage: AssetImage("assets/logos/CPC.png"),
+        ),
+        SizedBox(width: 20.w),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "DIU Computer &",
+              style: TextStyle(
+                color: Coloris.white,
+                fontSize: 20.sp,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            Text(
+              "Programming Community",
+              style: TextStyle(
+                color: Coloris.white,
+                fontSize: 18.sp,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCarousel() {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 20.w),
+      child: SizedBox(
+        height: 200.h,
+        width: double.infinity,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(10.0),
+          child: AnotherCarousel(
+            images: const [
+              AssetImage("assets/banner/specific_page/DOM.jpg"),
+              AssetImage("assets/banner/specific_page/BOM.jpg"),
+              AssetImage("assets/banner/specific_page/COM.jpg"),
+              AssetImage("assets/banner/specific_page/LOM.jpg"),
+            ],
+            dotBgColor: Colors.transparent,
+            dotColor: Coloris.primary_color,
+            dotSize: 10.0,
+            dotIncreasedColor: Colors.white,
+          ),
+        ),
       ),
     );
   }

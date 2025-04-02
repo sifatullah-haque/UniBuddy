@@ -8,57 +8,36 @@ class SpecificPageGridviewWithIcons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // List of grid items
+    final List<Map<String, String>> gridItems = [
+      {"icon": "Coming_Events", "title": "Coming Events"},
+      {"icon": "Running_Contest", "title": "Running Contest"},
+      {"icon": "Talk", "title": "Talk"},
+      {"icon": "Projects", "title": "Projects"},
+      {"icon": "Challenges", "title": "Challenges"},
+      {"icon": "Core_Members", "title": "Core Members"},
+      {"icon": "Online_Seminar", "title": "Online Seminar"},
+      {"icon": "Blog", "title": "Blog"},
+      {"icon": "Discussion", "title": "Discussion"}
+    ];
+
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10.0),
+      padding: EdgeInsets.symmetric(horizontal: 15.w),
       child: Column(
         children: [
-          SizedBox(
-              height: 360.h,
-              child: GridView(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    // childAspectRatio: 2 / 3,
-                    crossAxisSpacing: 8.0,
-                    mainAxisSpacing: 20.0),
-                children: [
-                  GridViewIcons(
-                    title: "Coming Events",
-                    icon: "Coming_Events",
-                  ),
-                  GridViewIcons(
-                    icon: "Running_Contest",
-                    title: "Running Contest",
-                  ),
-                  GridViewIcons(
-                    icon: "Talk",
-                    title: "Talk",
-                  ),
-                  GridViewIcons(
-                    icon: "Projects",
-                    title: "Projects",
-                  ),
-                  GridViewIcons(
-                    icon: "Challenges",
-                    title: "Challenges",
-                  ),
-                  GridViewIcons(
-                    icon: "Core_Members",
-                    title: "Core Members",
-                  ),
-                  GridViewIcons(
-                    icon: "Online_Seminar",
-                    title: "Online Seminar",
-                  ),
-                  GridViewIcons(
-                    icon: "Blog",
-                    title: "Blog",
-                  ),
-                  GridViewIcons(
-                    icon: "Discussion",
-                    title: "Discussion",
-                  )
-                ],
-              ))
+          GridView.count(
+            physics: NeverScrollableScrollPhysics(), // Disable scrolling
+            shrinkWrap: true, // Use only the space needed
+            crossAxisCount: 3,
+            crossAxisSpacing: 15.w,
+            mainAxisSpacing: 20.h,
+            children: gridItems
+                .map((item) => GridViewIcons(
+                      icon: item["icon"]!,
+                      title: item["title"]!,
+                    ))
+                .toList(),
+          )
         ],
       ),
     );
